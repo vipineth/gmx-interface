@@ -8,7 +8,7 @@ import "./Modal.css";
 import useLockBodyScroll from "../../hooks/useLockBodyScroll";
 
 export default function Modal(props) {
-  const { isVisible, setIsVisible, className, zIndex } = props;
+  const { isVisible, setIsVisible, className, zIndex, onAfterOpen } = props;
   const modalRef = useRef(null);
   useLockBodyScroll(modalRef, isVisible);
   useEffect(() => {
@@ -21,9 +21,13 @@ export default function Modal(props) {
     return () => window.removeEventListener("keydown", close);
   }, [setIsVisible]);
 
+  useEffect(() => {
+    if (typeof onAfterOpen === "function") onAfterOpen();
+  }, [onAfterOpen]);
+
   const fadeVariants = {
     hidden: { opacity: 0 },
-    visible: { opacity: 1 }
+    visible: { opacity: 1 },
   };
 
   return (
@@ -42,22 +46,19 @@ export default function Modal(props) {
             className="Modal-backdrop"
             style={{
               overflow: isVisible ? "hidden" : "visible",
-              position: "fixed"
+              position: "fixed",
             }}
             onClick={() => setIsVisible(false)}
           ></div>
           <div className="Modal-content">
             <div className="Modal-title-bar">
               <div className="Modal-title">{props.label}</div>
-              <div
-                className="Modal-close-button"
-                onClick={() => setIsVisible(false)}
-              >
+              <div className="Modal-close-button" onClick={() => setIsVisible(false)}>
                 <MdClose fontSize={20} className="Modal-close-icon" />
               </div>
             </div>
             <div className="divider" />
-            <div ref={modalRef} className="Modal-body">
+            <div className="Modal-body" ref={modalRef}>
               {props.children}
             </div>
           </div>

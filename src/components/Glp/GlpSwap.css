@@ -15,7 +15,7 @@
   color: #ffffff;
   font-size: 2.2rem;
   font-weight: 500;
-  font-family: "Relative Bold";
+  font-family: 'Relative Bold';
 }
 
 .Tab-description {
@@ -48,6 +48,10 @@
 }
 .GlpSwap-from-token .Modal-content .Modal-body {
   padding-right: 5px;
+  max-height: calc(100vh - 5rem);
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  -webkit-overflow-scrolling: auto;
 }
 
 .GlpSwap-content .GlpSwap-stats-card,
@@ -76,13 +80,13 @@
   margin: 1rem 0;
 }
 
-.GlpSwap-stats-card .GlpSwap-stats-mark-icon {
+.App-card-title-mark-icon {
   position: relative;
   margin-right: 0.5rem;
   display: flex;
 }
 
-.GlpSwap-stats-card .GlpSwap-stats-mark-icon .selected-network-symbol {
+.App-card-title-mark-icon .selected-network-symbol {
   position: absolute;
   bottom: 0;
   right: 0;
@@ -90,18 +94,18 @@
   border-radius: 50%;
 }
 
-.GlpSwap-stats-card .GlpSwap-stats-mark {
+.App-card-title-mark {
   display: flex;
 }
 
-.GlpSwap-stats-mark .GlpSwap-stats-mark-title {
+.App-card-title-mark .App-card-title-mark-title {
   font-size: 1.032rem;
   line-height: 1.355rem;
   letter-spacing: 0px;
   color: #ffffff;
 }
 
-.GlpSwap-stats-mark .GlpSwap-stats-mark-subtitle {
+.App-card-title-mark .App-card-title-mark-subtitle {
   font-size: 0.774rem;
   line-height: 1rem;
   letter-spacing: 0px;
@@ -111,7 +115,10 @@
 .GlpSwap-token-list {
   border: 1px solid #1e2136;
   border-radius: 4px;
-  background: #17182c;
+  background: #16182e;
+  padding: 1rem;
+  padding-top: 0;
+  text-align: left;
 }
 
 .GlpSwap-token-list-content {
@@ -119,7 +126,6 @@
   padding: 1rem;
   padding-top: 0;
   text-align: left;
-  overflow-x: auto;
 }
 
 .GlpSwap-box .App-card-title {
@@ -167,10 +173,7 @@
 
 .token-table td,
 .token-table th {
-  padding-top: 1rem;
-  padding-bottom: 1rem;
-  padding-left: 0.5rem;
-  padding-right: 0.5rem;
+  padding: 0.75rem;
 }
 
 .token-table td:nth-child(2),
@@ -222,6 +225,9 @@
   width: 100%;
   justify-content: center;
 }
+.cap-reached {
+  margin-left: 8px;
+}
 
 @media (max-width: 900px) {
   .GlpSwap-content {
@@ -237,27 +243,6 @@
   .GlpSwap-content .GlpSwap-box {
     margin: 0;
     max-width: 100%;
-  }
-
-  .GlpSwap-token-list {
-    border: none;
-    background-color: transparent;
-  }
-
-  .GlpSwap-token-list-content {
-    padding: 0;
-  }
-
-  .token-table {
-    display: none;
-  }
-
-  .token-grid {
-    display: grid;
-    grid-template-columns: repeat(2, 1fr);
-    grid-gap: 1rem;
-    margin-top: 0.5rem;
-    padding-top: 1rem;
   }
 }
 
@@ -281,6 +266,27 @@
     padding-right: 5px;
     margin: 1rem calc(1rem - 5px) 1rem 1rem;
   }
+
+  .GlpSwap-token-list {
+    border: none;
+    background-color: transparent;
+    padding: 0;
+  }
+
+  .GlpSwap-token-list-content {
+    padding: 0;
+  }
+
+  .token-table {
+    display: none;
+  }
+
+  .token-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    grid-gap: 1rem;
+    margin-top: 0.5rem;
+  }
 }
 @media (max-width: 510px) {
   .token-grid {
@@ -288,6 +294,5 @@
     grid-template-columns: 1fr;
     grid-gap: 1rem;
     margin-top: 0.5rem;
-    padding-top: 1rem;
   }
 }

@@ -1,17 +1,13 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { SWRConfig } from "swr";
+import { ethers } from "ethers";
 
 import { motion, AnimatePresence } from "framer-motion";
 
 import { Web3ReactProvider, useWeb3React } from "@web3-react/core";
 import { Web3Provider } from "@ethersproject/providers";
 
-import {
-  BrowserRouter as Router,
-  Switch,
-  Route,
-  NavLink
-} from "react-router-dom";
+import { Switch, Route, NavLink } from "react-router-dom";
 
 import {
   ARBITRUM,
@@ -19,6 +15,7 @@ import {
   DEFAULT_SLIPPAGE_AMOUNT,
   SLIPPAGE_BPS_KEY,
   IS_PNL_IN_LEVERAGE_KEY,
+  SHOW_PNL_AFTER_FEES_KEY,
   BASIS_POINTS_DIVISOR,
   SHOULD_SHOW_POSITION_LINES_KEY,
   clearWalletConnectData,
@@ -32,7 +29,16 @@ import {
   useLocalStorageSerializeKey,
   useInactiveListener,
   getExplorerUrl,
-  getWalletConnectHandler
+  getWalletConnectHandler,
+  activateInjectedProvider,
+  hasMetaMaskWalletExtension,
+  hasCoinBaseWalletExtension,
+  isMobileDevice,
+  clearWalletLinkData,
+  SHOULD_EAGER_CONNECT_LOCALSTORAGE_KEY,
+  CURRENT_PROVIDER_LOCALSTORAGE_KEY,
+  REFERRAL_CODE_KEY,
+  REFERRAL_CODE_QUERY_PARAMS,
 } from "./Helpers";
 
 import Home from "./views/Home/Home";
@@ -40,15 +46,17 @@ import Presale from "./views/Presale/Presale";
 import Dashboard from "./views/Dashboard/Dashboard";
 import Ecosystem from "./views/Ecosystem/Ecosystem";
 import Stake from "./views/Stake/Stake";
-import Exchange from "./views/Exchange/Exchange";
+import { Exchange } from "./views/Exchange/Exchange";
 import Actions from "./views/Actions/Actions";
 import OrdersOverview from "./views/OrdersOverview/OrdersOverview";
 import PositionsOverview from "./views/PositionsOverview/PositionsOverview";
+import Referrals from "./views/Referrals/Referrals";
 import BuyGlp from "./views/BuyGlp/BuyGlp";
 import BuyGMX from "./views/BuyGMX/BuyGMX";
 import SellGlp from "./views/SellGlp/SellGlp";
 import Buy from "./views/Buy/Buy";
 import NftWallet from "./views/NftWallet/NftWallet";
+import ClaimEsGmx from "./views/ClaimEsGmx/ClaimEsGmx";
 import BeginAccountTransfer from "./views/BeginAccountTransfer/BeginAccountTransfer";
 import CompleteAccountTransfer from "./views/CompleteAccountTransfer/CompleteAccountTransfer";
 import Debug from "./views/Debug/Debug";
@@ -63,7 +71,6 @@ import Checkbox from "./components/Checkbox/Checkbox";
 import { RiMenuLine } from "react-icons/ri";
 import { FaTimes } from "react-icons/fa";
 import { FiX } from "react-icons/fi";
-// import { BiLogOut } from "react-icons/bi";
 
 import "./Font.css";
 import "./Shared.css";
@@ -77,9 +84,23 @@ import connectWalletImg from "./img/ic_wallet_24.svg";
 
 // import logoImg from './img/gmx-logo-final-white-small.png'
 import metamaskImg from "./img/metamask.png";
+import coinbaseImg from "./img/coinbaseWallet.png";
 import walletConnectImg from "./img/walletconnect-circle-blue.svg";
 import AddressDropdown from "./components/AddressDropdown/AddressDropdown";
 import { ConnectWalletButton } from "./components/Common/Button";
+import useEventToast from "./components/EventToast/useEventToast";
+import { Link } from "react-router-dom";
+import EventToastContainer from "./components/EventToast/EventToastContainer";
+import SEO from "./components/Common/SEO";
+import useRouteQuery from "./hooks/useRouteQuery";
+import { encodeReferralCode } from "./Api/referrals";
+
+import { getContract } from "./Addresses";
+import VaultV2 from "./abis/VaultV2.json";
+import VaultV2b from "./abis/VaultV2b.json";
+import PositionRouter from "./abis/PositionRouter.json";
+import PageNotFound from "./views/PageNotFound/PageNotFound";
+import ReferralTerms from "./views/ReferralTerms/ReferralTerms";
 
 if ("ethereum" in window) {
   window.ethereum.autoRefreshOnNetworkChange = false;
@@ -96,11 +117,28 @@ const Zoom = cssTransition({
   appendPosition: false,
   collapse: true,
   collapseDuration: 200,
-  duration: 200
+  duration: 200,
 });
 
 function inPreviewMode() {
   return false;
+}
+
+const arbWsProvider = new ethers.providers.WebSocketProvider("wss://arb1.arbitrum.io/ws");
+
+const avaxWsProvider = new ethers.providers.JsonRpcProvider("https://api.avax.network/ext/bc/C/rpc");
+
+function getWsProvider(active, chainId) {
+  if (!active) {
+    return;
+  }
+  if (chainId === ARBITRUM) {
+    return arbWsProvider;
+  }
+
+  if (chainId === AVALANCHE) {
+    return avaxWsProvider;
+  }
 }
 
 function AppHeaderLinks({ small, openSettings, clickCloseIcon }) {
@@ -118,11 +156,7 @@ function AppHeaderLinks({ small, openSettings, clickCloseIcon }) {
           </NavLink>
         </div>
         <div className="App-header-link-container">
-          <a
-            href="https://gmxio.gitbook.io/gmx/"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
+          <a href="https://gmxio.gitbook.io/gmx/" target="_blank" rel="noopener noreferrer">
             ABOUT
           </a>
         </div>
@@ -133,15 +167,12 @@ function AppHeaderLinks({ small, openSettings, clickCloseIcon }) {
     <div className="App-header-links">
       {small && (
         <div className="App-header-links-header">
-          <div
-            className="App-header-menu-icon-block"
-            onClick={() => clickCloseIcon()}
-          >
+          <div className="App-header-menu-icon-block" onClick={() => clickCloseIcon()}>
             <FiX className="App-header-menu-icon" />
           </div>
-          <a className="App-header-link-main" href="/">
+          <Link className="App-header-link-main" to="/">
             <img src={logoImg} alt="GMX Logo" />
-          </a>
+          </Link>
         </div>
       )}
       <div className="App-header-link-container App-header-link-home">
@@ -149,6 +180,13 @@ function AppHeaderLinks({ small, openSettings, clickCloseIcon }) {
           Home
         </NavLink>
       </div>
+      {small && (
+        <div className="App-header-link-container">
+          <NavLink activeClassName="active" to="/trade">
+            Trade
+          </NavLink>
+        </div>
+      )}
       <div className="App-header-link-container">
         <NavLink activeClassName="active" to="/dashboard">
           Dashboard
@@ -165,16 +203,17 @@ function AppHeaderLinks({ small, openSettings, clickCloseIcon }) {
         </NavLink>
       </div>
       <div className="App-header-link-container">
+        <NavLink activeClassName="active" to="/referrals">
+          Referrals
+        </NavLink>
+      </div>
+      <div className="App-header-link-container">
         <NavLink activeClassName="active" to="/ecosystem">
           Ecosystem
         </NavLink>
       </div>
       <div className="App-header-link-container">
-        <a
-          href="https://gmxio.gitbook.io/gmx/"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
+        <a href="https://gmxio.gitbook.io/gmx/" target="_blank" rel="noopener noreferrer">
           About
         </a>
       </div>
@@ -193,11 +232,9 @@ function AppHeaderLinks({ small, openSettings, clickCloseIcon }) {
 function AppHeaderUser({
   openSettings,
   small,
-  setActivatingConnector,
-  walletModalVisible,
   setWalletModalVisible,
   showNetworkSelectorModal,
-  disconnectAccountAndCloseSettings
+  disconnectAccountAndCloseSettings,
 }) {
   const { chainId } = useChainId();
   const { active, account } = useWeb3React();
@@ -207,14 +244,14 @@ function AppHeaderUser({
       label: "Arbitrum",
       value: ARBITRUM,
       icon: "ic_arbitrum_24.svg",
-      color: "#264f79"
+      color: "#264f79",
     },
     {
       label: "Avalanche",
       value: AVALANCHE,
       icon: "ic_avalanche_24.svg",
-      color: "#E841424D"
-    }
+      color: "#E841424D",
+    },
   ];
 
   useEffect(() => {
@@ -224,7 +261,7 @@ function AppHeaderUser({
   }, [active, setWalletModalVisible]);
 
   const onNetworkSelect = useCallback(
-    option => {
+    (option) => {
       if (option.value === chainId) {
         return;
       }
@@ -255,10 +292,7 @@ function AppHeaderUser({
             showModal={showNetworkSelectorModal}
           />
         )}
-        <ConnectWalletButton
-          onClick={() => setWalletModalVisible(true)}
-          imgSrc={connectWalletImg}
-        >
+        <ConnectWalletButton onClick={() => setWalletModalVisible(true)} imgSrc={connectWalletImg}>
           {small ? "Connect" : "Connect Wallet"}
         </ConnectWalletButton>
       </div>
@@ -300,9 +334,10 @@ function AppHeaderUser({
 }
 
 function FullApp() {
-  const { connector, library, deactivate, activate } = useWeb3React();
-
+  const exchangeRef = useRef();
+  const { connector, library, deactivate, activate, active } = useWeb3React();
   const { chainId } = useChainId();
+  useEventToast();
   const [activatingConnector, setActivatingConnector] = useState();
   useEffect(() => {
     if (activatingConnector && activatingConnector === connector) {
@@ -311,6 +346,18 @@ function FullApp() {
   }, [activatingConnector, connector, chainId]);
   const triedEager = useEagerConnect(setActivatingConnector);
   useInactiveListener(!triedEager || !!activatingConnector);
+
+  const query = useRouteQuery();
+
+  useEffect(() => {
+    let referralCode = query.get(REFERRAL_CODE_QUERY_PARAMS);
+    if (referralCode && referralCode.length <= 20) {
+      const encodedReferralCode = encodeReferralCode(referralCode);
+      if (encodeReferralCode !== ethers.constants.HashZero) {
+        localStorage.setItem(REFERRAL_CODE_KEY, encodedReferralCode);
+      }
+    }
+  }, [query]);
 
   useEffect(() => {
     if (window.ethereum) {
@@ -327,58 +374,101 @@ function FullApp() {
   const disconnectAccount = useCallback(() => {
     // only works with WalletConnect
     clearWalletConnectData();
+    // force clear localStorage connection for MM/CB Wallet (Brave legacy)
+    clearWalletLinkData();
     deactivate();
   }, [deactivate]);
 
   const disconnectAccountAndCloseSettings = () => {
     disconnectAccount();
+    localStorage.removeItem(SHOULD_EAGER_CONNECT_LOCALSTORAGE_KEY);
+    localStorage.removeItem(CURRENT_PROVIDER_LOCALSTORAGE_KEY);
     setIsSettingsVisible(false);
   };
 
   const connectInjectedWallet = getInjectedHandler(activate);
-  const activateWalletConnect = getWalletConnectHandler(
-    activate,
-    deactivate,
-    setActivatingConnector
-  );
+  const activateWalletConnect = () => {
+    getWalletConnectHandler(activate, deactivate, setActivatingConnector)();
+  };
+
+  const userOnMobileDevice = "navigator" in window && isMobileDevice(window.navigator);
+
+  const activateMetaMask = () => {
+    if (!hasMetaMaskWalletExtension()) {
+      helperToast.error(
+        <div>
+          MetaMask not detected.
+          <br />
+          <br />
+          <a href="https://metamask.io" target="_blank" rel="noopener noreferrer">
+            Install MetaMask
+          </a>
+          {userOnMobileDevice ? ", and use GMX with its built-in browser" : " to start using GMX"}.
+        </div>
+      );
+      return false;
+    }
+    attemptActivateWallet("MetaMask");
+  };
+  const activateCoinBase = () => {
+    if (!hasCoinBaseWalletExtension()) {
+      helperToast.error(
+        <div>
+          Coinbase Wallet not detected.
+          <br />
+          <br />
+          <a href="https://www.coinbase.com/wallet" target="_blank" rel="noopener noreferrer">
+            Install Coinbase Wallet
+          </a>
+          {userOnMobileDevice ? ", and use GMX with its built-in browser" : " to start using GMX"}.
+        </div>
+      );
+      return false;
+    }
+    attemptActivateWallet("CoinBase");
+  };
+
+  const attemptActivateWallet = (providerName) => {
+    localStorage.setItem(SHOULD_EAGER_CONNECT_LOCALSTORAGE_KEY, true);
+    localStorage.setItem(CURRENT_PROVIDER_LOCALSTORAGE_KEY, providerName);
+    activateInjectedProvider(providerName);
+    connectInjectedWallet();
+  };
 
   const [walletModalVisible, setWalletModalVisible] = useState();
   const connectWallet = () => setWalletModalVisible(true);
 
   const [isDrawerVisible, setIsDrawerVisible] = useState(undefined);
-  const [
-    isNativeSelectorModalVisible,
-    setisNativeSelectorModalVisible
-  ] = useState(false);
+  const [isNativeSelectorModalVisible, setisNativeSelectorModalVisible] = useState(false);
   const fadeVariants = {
     hidden: { opacity: 0 },
-    visible: { opacity: 1 }
+    visible: { opacity: 1 },
   };
   const slideVariants = {
     hidden: { x: "-100%" },
-    visible: { x: 0 }
+    visible: { x: 0 },
   };
 
   const [isSettingsVisible, setIsSettingsVisible] = useState(false);
-  const [
-    savedSlippageAmount,
-    setSavedSlippageAmount
-  ] = useLocalStorageSerializeKey(
+  const [savedSlippageAmount, setSavedSlippageAmount] = useLocalStorageSerializeKey(
     [chainId, SLIPPAGE_BPS_KEY],
     DEFAULT_SLIPPAGE_AMOUNT
   );
   const [slippageAmount, setSlippageAmount] = useState(0);
   const [isPnlInLeverage, setIsPnlInLeverage] = useState(false);
+  const [showPnlAfterFees, setShowPnlAfterFees] = useState(false);
 
-  const [
-    savedIsPnlInLeverage,
-    setSavedIsPnlInLeverage
-  ] = useLocalStorageSerializeKey([chainId, IS_PNL_IN_LEVERAGE_KEY], false);
+  const [savedIsPnlInLeverage, setSavedIsPnlInLeverage] = useLocalStorageSerializeKey(
+    [chainId, IS_PNL_IN_LEVERAGE_KEY],
+    false
+  );
 
-  const [
-    savedShouldShowPositionLines,
-    setSavedShouldShowPositionLines
-  ] = useLocalStorageSerializeKey(
+  const [savedShowPnlAfterFees, setSavedShowPnlAfterFees] = useLocalStorageSerializeKey(
+    [chainId, SHOW_PNL_AFTER_FEES_KEY],
+    false
+  );
+
+  const [savedShouldShowPositionLines, setSavedShouldShowPositionLines] = useLocalStorageSerializeKey(
     [chainId, SHOULD_SHOW_POSITION_LINES_KEY],
     false
   );
@@ -387,10 +477,11 @@ function FullApp() {
     const slippage = parseInt(savedSlippageAmount);
     setSlippageAmount((slippage / BASIS_POINTS_DIVISOR) * 100);
     setIsPnlInLeverage(savedIsPnlInLeverage);
+    setShowPnlAfterFees(savedShowPnlAfterFees);
     setIsSettingsVisible(true);
   };
 
-  const showNetworkSelectorModal = val => {
+  const showNetworkSelectorModal = (val) => {
     setisNativeSelectorModalVisible(val);
   };
 
@@ -412,6 +503,7 @@ function FullApp() {
     }
 
     setSavedIsPnlInLeverage(isPnlInLeverage);
+    setSavedShowPnlAfterFees(showPnlAfterFees);
     setSavedSlippageAmount(basisPoints);
     setIsSettingsVisible(false);
   };
@@ -449,7 +541,7 @@ function FullApp() {
             const txUrl = getExplorerUrl(chainId) + "tx/" + pendingTxn.hash;
             helperToast.success(
               <div>
-                {pendingTxn.message}.{" "}
+                {pendingTxn.message}{" "}
                 <a href={txUrl} target="_blank" rel="noopener noreferrer">
                   View
                 </a>
@@ -473,8 +565,55 @@ function FullApp() {
     return () => clearInterval(interval);
   }, [library, pendingTxns, chainId]);
 
+  const vaultAddress = getContract(chainId, "Vault");
+  const positionRouterAddress = getContract(chainId, "PositionRouter");
+
+  useEffect(() => {
+    const wsVaultAbi = chainId === ARBITRUM ? VaultV2.abi : VaultV2b.abi;
+    const wsProvider = getWsProvider(active, chainId);
+    if (!wsProvider) {
+      return;
+    }
+
+    const wsVault = new ethers.Contract(vaultAddress, wsVaultAbi, wsProvider);
+    const wsPositionRouter = new ethers.Contract(positionRouterAddress, PositionRouter.abi, wsProvider);
+
+    const callExchangeRef = (method, ...args) => {
+      if (!exchangeRef || !exchangeRef.current) {
+        return;
+      }
+
+      exchangeRef.current[method](...args);
+    };
+
+    // handle the subscriptions here instead of within the Exchange component to avoid unsubscribing and re-subscribing
+    // each time the Exchange components re-renders, which happens on every data update
+    const onUpdatePosition = (...args) => callExchangeRef("onUpdatePosition", ...args);
+    const onClosePosition = (...args) => callExchangeRef("onClosePosition", ...args);
+    const onIncreasePosition = (...args) => callExchangeRef("onIncreasePosition", ...args);
+    const onDecreasePosition = (...args) => callExchangeRef("onDecreasePosition", ...args);
+    const onCancelIncreasePosition = (...args) => callExchangeRef("onCancelIncreasePosition", ...args);
+    const onCancelDecreasePosition = (...args) => callExchangeRef("onCancelDecreasePosition", ...args);
+
+    wsVault.on("UpdatePosition", onUpdatePosition);
+    wsVault.on("ClosePosition", onClosePosition);
+    wsVault.on("IncreasePosition", onIncreasePosition);
+    wsVault.on("DecreasePosition", onDecreasePosition);
+    wsPositionRouter.on("CancelIncreasePosition", onCancelIncreasePosition);
+    wsPositionRouter.on("CancelDecreasePosition", onCancelDecreasePosition);
+
+    return function cleanup() {
+      wsVault.off("UpdatePosition", onUpdatePosition);
+      wsVault.off("ClosePosition", onClosePosition);
+      wsVault.off("IncreasePosition", onIncreasePosition);
+      wsVault.off("DecreasePosition", onDecreasePosition);
+      wsPositionRouter.off("CancelIncreasePosition", onCancelIncreasePosition);
+      wsPositionRouter.off("CancelDecreasePosition", onCancelDecreasePosition);
+    };
+  }, [active, chainId, vaultAddress, positionRouterAddress]);
+
   return (
-    <Router>
+    <>
       <div className="App">
         {/* <div className="App-background-side-1"></div>
         <div className="App-background-side-2"></div>
@@ -508,11 +647,7 @@ function FullApp() {
                   exit="hidden"
                   variants={fadeVariants}
                   transition={{ duration: 0.2 }}
-                  onClick={() =>
-                    setisNativeSelectorModalVisible(
-                      !isNativeSelectorModalVisible
-                    )
-                  }
+                  onClick={() => setisNativeSelectorModalVisible(!isNativeSelectorModalVisible)}
                 ></motion.div>
               )}
             </AnimatePresence>
@@ -520,17 +655,15 @@ function FullApp() {
           <header>
             <div className="App-header large">
               <div className="App-header-container-left">
-                <a className="App-header-link-main" href="/">
+                <Link className="App-header-link-main" to="/">
                   <img src={logoImg} className="big" alt="GMX Logo" />
                   <img src={logoSmallImg} className="small" alt="GMX Logo" />
-                </a>
+                </Link>
                 <AppHeaderLinks />
               </div>
               <div className="App-header-container-right">
                 <AppHeaderUser
-                  disconnectAccountAndCloseSettings={
-                    disconnectAccountAndCloseSettings
-                  }
+                  disconnectAccountAndCloseSettings={disconnectAccountAndCloseSettings}
                   openSettings={openSettings}
                   setActivatingConnector={setActivatingConnector}
                   walletModalVisible={walletModalVisible}
@@ -539,39 +672,25 @@ function FullApp() {
                 />
               </div>
             </div>
-            <div
-              className={cx("App-header", "small", { active: isDrawerVisible })}
-            >
+            <div className={cx("App-header", "small", { active: isDrawerVisible })}>
               <div
                 className={cx("App-header-link-container", "App-header-top", {
-                  active: isDrawerVisible
+                  active: isDrawerVisible,
                 })}
               >
                 <div className="App-header-container-left">
-                  <div
-                    className="App-header-menu-icon-block"
-                    onClick={() => setIsDrawerVisible(!isDrawerVisible)}
-                  >
-                    {!isDrawerVisible && (
-                      <RiMenuLine className="App-header-menu-icon" />
-                    )}
-                    {isDrawerVisible && (
-                      <FaTimes className="App-header-menu-icon" />
-                    )}
+                  <div className="App-header-menu-icon-block" onClick={() => setIsDrawerVisible(!isDrawerVisible)}>
+                    {!isDrawerVisible && <RiMenuLine className="App-header-menu-icon" />}
+                    {isDrawerVisible && <FaTimes className="App-header-menu-icon" />}
                   </div>
-                  <div
-                    className="App-header-link-main clickable"
-                    onClick={() => setIsDrawerVisible(!isDrawerVisible)}
-                  >
+                  <div className="App-header-link-main clickable" onClick={() => setIsDrawerVisible(!isDrawerVisible)}>
                     <img src={logoImg} className="big" alt="GMX Logo" />
                     <img src={logoSmallImg} className="small" alt="GMX Logo" />
                   </div>
                 </div>
                 <div className="App-header-container-right">
                   <AppHeaderUser
-                    disconnectAccountAndCloseSettings={
-                      disconnectAccountAndCloseSettings
-                    }
+                    disconnectAccountAndCloseSettings={disconnectAccountAndCloseSettings}
                     openSettings={openSettings}
                     small
                     setActivatingConnector={setActivatingConnector}
@@ -594,11 +713,7 @@ function FullApp() {
                 variants={slideVariants}
                 transition={{ duration: 0.2 }}
               >
-                <AppHeaderLinks
-                  small
-                  openSettings={openSettings}
-                  clickCloseIcon={() => setIsDrawerVisible(false)}
-                />
+                <AppHeaderLinks small openSettings={openSettings} clickCloseIcon={() => setIsDrawerVisible(false)} />
               </motion.div>
             )}
           </AnimatePresence>
@@ -608,15 +723,15 @@ function FullApp() {
             </Route>
             <Route exact path="/trade">
               <Exchange
+                ref={exchangeRef}
+                savedShowPnlAfterFees={savedShowPnlAfterFees}
                 savedIsPnlInLeverage={savedIsPnlInLeverage}
                 setSavedIsPnlInLeverage={setSavedIsPnlInLeverage}
                 savedSlippageAmount={savedSlippageAmount}
                 setPendingTxns={setPendingTxns}
                 pendingTxns={pendingTxns}
                 savedShouldShowPositionLines={savedShouldShowPositionLines}
-                setSavedShouldShowPositionLines={
-                  setSavedShouldShowPositionLines
-                }
+                setSavedShouldShowPositionLines={setSavedShouldShowPositionLines}
                 connectWallet={connectWallet}
               />
             </Route>
@@ -627,10 +742,7 @@ function FullApp() {
               <Dashboard />
             </Route>
             <Route exact path="/earn">
-              <Stake
-                setPendingTxns={setPendingTxns}
-                connectWallet={connectWallet}
-              />
+              <Stake setPendingTxns={setPendingTxns} connectWallet={connectWallet} />
             </Route>
             <Route exact path="/buy">
               <Buy
@@ -659,11 +771,17 @@ function FullApp() {
             <Route exact path="/ecosystem">
               <Ecosystem />
             </Route>
+            <Route exact path="/referrals">
+              <Referrals pendingTxns={pendingTxns} connectWallet={connectWallet} setPendingTxns={setPendingTxns} />
+            </Route>
             <Route exact path="/about">
               <Home />
             </Route>
             <Route exact path="/nft_wallet">
               <NftWallet />
+            </Route>
+            <Route exact path="/claim_es_gmx">
+              <ClaimEsGmx setPendingTxns={setPendingTxns} />
             </Route>
             <Route exact path="/actions/:account">
               <Actions />
@@ -686,6 +804,12 @@ function FullApp() {
             <Route exact path="/debug">
               <Debug />
             </Route>
+            <Route exact path="/referral-terms">
+              <ReferralTerms />
+            </Route>
+            <Route path="*">
+              <PageNotFound />
+            </Route>
           </Switch>
         </div>
       </div>
@@ -700,17 +824,22 @@ function FullApp() {
         draggable={false}
         pauseOnHover
       />
+      <EventToastContainer />
       <Modal
         className="Connect-wallet-modal"
         isVisible={walletModalVisible}
         setIsVisible={setWalletModalVisible}
         label="Connect Wallet"
       >
-        <button className="MetaMask-btn" onClick={connectInjectedWallet}>
+        <button className="Wallet-btn MetaMask-btn" onClick={activateMetaMask}>
           <img src={metamaskImg} alt="MetaMask" />
           <div>MetaMask</div>
         </button>
-        <button className="WalletConnect-btn" onClick={activateWalletConnect}>
+        <button className="Wallet-btn CoinbaseWallet-btn" onClick={activateCoinBase}>
+          <img src={coinbaseImg} alt="Coinbase Wallet" />
+          <div>Coinbase Wallet</div>
+        </button>
+        <button className="Wallet-btn WalletConnect-btn" onClick={activateWalletConnect}>
           <img src={walletConnectImg} alt="WalletConnect" />
           <div>WalletConnect</div>
         </button>
@@ -722,43 +851,33 @@ function FullApp() {
         label="Settings"
       >
         <div className="App-settings-row">
-          <div>Slippage Tolerance</div>
+          <div>Allowed Slippage</div>
           <div className="App-slippage-tolerance-input-container">
             <input
               type="number"
               className="App-slippage-tolerance-input"
               min="0"
               value={slippageAmount}
-              onChange={e => setSlippageAmount(e.target.value)}
+              onChange={(e) => setSlippageAmount(e.target.value)}
             />
             <div className="App-slippage-tolerance-input-percent">%</div>
           </div>
         </div>
         <div className="Exchange-settings-row">
-          <Checkbox
-            isChecked={isPnlInLeverage}
-            setIsChecked={setIsPnlInLeverage}
-          >
+          <Checkbox isChecked={showPnlAfterFees} setIsChecked={setShowPnlAfterFees}>
+            Display PnL after fees
+          </Checkbox>
+        </div>
+        <div className="Exchange-settings-row">
+          <Checkbox isChecked={isPnlInLeverage} setIsChecked={setIsPnlInLeverage}>
             Include PnL in leverage display
           </Checkbox>
         </div>
-        {/* <div className="Exchange-settings-row">
-          <button
-            className="btn-link"
-            onClick={disconnectAccountAndCloseSettings}
-          >
-            <BiLogOut className="logout-icon" />
-            Logout from Account
-          </button>
-        </div> */}
-        <button
-          className="App-cta Exchange-swap-button"
-          onClick={saveAndCloseSettings}
-        >
+        <button className="App-cta Exchange-swap-button" onClick={saveAndCloseSettings}>
           Save
         </button>
       </Modal>
-    </Router>
+    </>
   );
 }
 
@@ -766,15 +885,15 @@ function PreviewApp() {
   const [isDrawerVisible, setIsDrawerVisible] = useState(undefined);
   const fadeVariants = {
     hidden: { opacity: 0 },
-    visible: { opacity: 1 }
+    visible: { opacity: 1 },
   };
   const slideVariants = {
     hidden: { x: "-100%" },
-    visible: { x: 0 }
+    visible: { x: 0 },
   };
 
   return (
-    <Router>
+    <>
       <div className="App">
         <div className="App-background-side-1"></div>
         <div className="App-background-side-2"></div>
@@ -801,12 +920,7 @@ function PreviewApp() {
           <header>
             <div className="App-header large preview">
               <div className="App-header-container-left">
-                <NavLink
-                  exact
-                  activeClassName="active"
-                  className="App-header-link-main"
-                  to="/"
-                >
+                <NavLink exact activeClassName="active" className="App-header-link-main" to="/">
                   <img src={logoImg} alt="GMX Logo" />
                   GMX
                 </NavLink>
@@ -815,12 +929,10 @@ function PreviewApp() {
                 <AppHeaderLinks />
               </div>
             </div>
-            <div
-              className={cx("App-header", "small", { active: isDrawerVisible })}
-            >
+            <div className={cx("App-header", "small", { active: isDrawerVisible })}>
               <div
                 className={cx("App-header-link-container", "App-header-top", {
-                  active: isDrawerVisible
+                  active: isDrawerVisible,
                 })}
               >
                 <div className="App-header-container-left">
@@ -830,12 +942,8 @@ function PreviewApp() {
                 </div>
                 <div className="App-header-container-right">
                   <div onClick={() => setIsDrawerVisible(!isDrawerVisible)}>
-                    {!isDrawerVisible && (
-                      <RiMenuLine className="App-header-menu-icon" />
-                    )}
-                    {isDrawerVisible && (
-                      <FaTimes className="App-header-menu-icon" />
-                    )}
+                    {!isDrawerVisible && <RiMenuLine className="App-header-menu-icon" />}
+                    {isDrawerVisible && <FaTimes className="App-header-menu-icon" />}
                   </div>
                 </div>
               </div>
@@ -866,7 +974,7 @@ function PreviewApp() {
           </Switch>
         </div>
       </div>
-    </Router>
+    </>
   );
 }
 
@@ -882,7 +990,9 @@ function App() {
   return (
     <SWRConfig value={{ refreshInterval: 5000 }}>
       <Web3ReactProvider getLibrary={getLibrary}>
-        <FullApp />
+        <SEO>
+          <FullApp />
+        </SEO>
       </Web3ReactProvider>
     </SWRConfig>
   );
