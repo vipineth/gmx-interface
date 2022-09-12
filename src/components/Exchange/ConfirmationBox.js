@@ -136,6 +136,7 @@ export default function ConfirmationBox(props) {
   }
 
   const getTitle = () => {
+    console.log("kek");
     if (!isMarketOrder) {
       return "Confirm Limit Order";
     }
