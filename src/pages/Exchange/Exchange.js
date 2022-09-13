@@ -41,7 +41,7 @@ import Router from "../../abis/Router.json";
 import Token from "../../abis/Token.json";
 
 import Checkbox from "../../components/Checkbox/Checkbox";
-import SwapBox from "../../components/Exchange/SwapBox";
+import SwapBox from "../../components/Exchange/SwapBox/SwapBox";
 import ExchangeTVChart, { getChartToken } from "../../components/Exchange/ExchangeTVChart";
 import PositionsList from "../../components/Exchange/PositionsList";
 import OrdersList from "../../components/Exchange/OrdersList";

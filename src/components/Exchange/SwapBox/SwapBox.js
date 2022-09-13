@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from "react";
-import Tooltip from "../Tooltip/Tooltip";
+import Tooltip from "../../Tooltip/Tooltip";
 import { Trans, t } from "@lingui/macro";
-import Modal from "../Modal/Modal";
+import Modal from "../../Modal/Modal";
 import Slider, { SliderTooltip } from "rc-slider";
 import "rc-slider/assets/index.css";
 import "./SwapBox.css";
@@ -34,7 +34,6 @@ import {
   MARGIN_FEE_BASIS_POINTS,
   PRECISION,
   USDG_ADDRESS,
-  STOP,
   LIMIT,
   SWAP_OPTIONS,
   DUST_BNB,
@@ -62,28 +61,31 @@ import {
   adjustForDecimals,
   IS_NETWORK_DISABLED,
   getChainName,
-} from "../../lib/legacy";
-import { getConstant } from "../../config/chains";
-import * as Api from "../../domain/legacy";
-import { getContract } from "../../config/Addresses";
+  STOP_LOSS,
+  TAKE_PROFIT,
+} from "../../../lib/legacy";
+import { getConstant } from "../../../config/chains";
+import * as Api from "../../../domain/legacy";
+import { getContract } from "../../../config/Addresses";
 
-import Checkbox from "../Checkbox/Checkbox";
-import Tab from "../Tab/Tab";
-import TokenSelector from "./TokenSelector";
-import ExchangeInfoRow from "./ExchangeInfoRow";
-import ConfirmationBox from "./ConfirmationBox";
-import OrdersToa from "./OrdersToa";
+import Checkbox from "../../Checkbox/Checkbox";
+import Tab from "../../Tab/Tab";
+import TokenSelector from "../TokenSelector";
+import ExchangeInfoRow from "../ExchangeInfoRow";
+import ConfirmationBox from "../ConfirmationBox";
+import OrdersToa from "../OrdersToa";
 
-import { getTokens, getWhitelistedTokens, getToken, getTokenBySymbol } from "../../config/Tokens";
-import PositionRouter from "../../abis/PositionRouter.json";
-import Router from "../../abis/Router.json";
-import Token from "../../abis/Token.json";
-import WETH from "../../abis/WETH.json";
+import { getTokens, getWhitelistedTokens, getToken, getTokenBySymbol } from "../../../config/Tokens";
+import PositionRouter from "../../../abis/PositionRouter.json";
+import Router from "../../../abis/Router.json";
+import Token from "../../../abis/Token.json";
+import WETH from "../../../abis/WETH.json";
 
-import longImg from "../../img/long.svg";
-import shortImg from "../../img/short.svg";
-import swapImg from "../../img/swap.svg";
-import { useUserReferralCode } from "../../domain/referrals";
+import longImg from "../../../img/long.svg";
+import shortImg from "../../../img/short.svg";
+import swapImg from "../../../img/swap.svg";
+import { useUserReferralCode } from "../../../domain/referrals";
+import { TriggerCloseSection } from "./TriggerCloseSection";
 
 const SWAP_ICONS = {
   [LONG]: longImg,
@@ -244,9 +246,10 @@ export default function SwapBox(props) {
 
   const isMarketOrder = orderOption === MARKET;
   const orderOptions = isSwap ? SWAP_ORDER_OPTIONS : LEVERAGE_ORDER_OPTIONS;
-  const orderOptionLabels = { [STOP]: "Trigger" };
 
   const [triggerPriceValue, setTriggerPriceValue] = useState("");
+  const [closeAmountValue, setCloseAmountValue] = useState("");
+
   const triggerPriceUsd = isMarketOrder ? 0 : parseValue(triggerPriceValue, USD_DECIMALS);
 
   const onTriggerPriceChange = (evt) => {
@@ -370,6 +373,9 @@ export default function SwapBox(props) {
 
   const fromAmount = parseValue(fromValue, fromToken && fromToken.decimals);
   const toAmount = parseValue(toValue, toToken && toToken.decimals);
+
+  const closeAmount = parseValue(closeAmountValue, toToken?.decimals);
+  const closeAmountUsd = getUsd(closeAmount, toTokenAddress, true, infoTokens);
 
   const isPotentialWrap = (fromToken.isNative && toToken.isWrapped) || (fromToken.isWrapped && toToken.isNative);
   const isWrapOrUnwrap = isSwap && isPotentialWrap;
@@ -778,17 +784,32 @@ export default function SwapBox(props) {
       }
     }
 
+    console.log("adasda", isCloseTrigger);
+
+    if (isCloseTrigger) {
+      if (!triggerPriceValue) {
+        return [t`Enter close price`];
+      }
+
+      console.log("asdadasd???");
+
+      return [false];
+    }
+
     if (!fromAmount || fromAmount.eq(0)) {
       return [t`Enter an amount`];
     }
+
     if (!toAmount || toAmount.eq(0)) {
       return [t`Enter an amount`];
     }
 
     const fromTokenInfo = getTokenInfo(infoTokens, fromTokenAddress);
+
     if (!fromTokenInfo || !fromTokenInfo.minPrice) {
       return [t`Incorrect network`];
     }
+
     if (fromTokenInfo && fromTokenInfo.balance && fromAmount && fromAmount.gt(fromTokenInfo.balance)) {
       return [t`Insufficient ${fromTokenInfo.symbol} balance`];
     }
@@ -848,8 +869,13 @@ export default function SwapBox(props) {
     if (IS_NETWORK_DISABLED[chainId]) {
       return [t`Leverage disabled, pending ${getChainName(chainId)} upgrade`];
     }
+
     if (hasOutdatedUi) {
       return [t`Page outdated, please refresh`];
+    }
+
+    if (isCloseTrigger) {
+      return [false];
     }
 
     if (!toAmount || toAmount.eq(0)) {
@@ -1106,9 +1132,7 @@ export default function SwapBox(props) {
     if (IS_NETWORK_DISABLED[chainId]) {
       return false;
     }
-    if (isStopOrder) {
-      return true;
-    }
+
     if (!active) {
       return true;
     }
@@ -1139,9 +1163,6 @@ export default function SwapBox(props) {
   };
 
   const getPrimaryText = () => {
-    if (isStopOrder) {
-      return t`Open a position`;
-    }
     if (!active) {
       return t`Connect Wallet`;
     }
@@ -1467,7 +1488,48 @@ export default function SwapBox(props) {
       });
   };
 
+  const createDecreaseOrder = () => {
+    const indexToken = getToken(chainId, indexTokenAddress);
+
+    const successMsg = t`
+      Created close order for ${indexToken.symbol} ${isLong ? "Long" : "Short"}
+    `;
+
+    const sizeDelta = closeAmount;
+
+    const collateralDelta = sizeDelta;
+
+    const triggerAboveThreshold = orderOption !== STOP_LOSS;
+
+    Api.createDecreaseOrder(
+      chainId,
+      library,
+      indexTokenAddress,
+      sizeDelta,
+      collateralTokenAddress,
+      collateralDelta,
+      isLong,
+      triggerPriceUsd,
+      triggerAboveThreshold,
+      {
+        pendingTxns,
+        setPendingTxns,
+        sentMsg: t`Close order submitted!`,
+        successMsg,
+        failMsg: t`Close order creation failed.`,
+      }
+    )
+      .then(() => {
+        setIsConfirming(false);
+      })
+      .finally(() => {
+        setIsSubmitting(false);
+        setIsPendingConfirmation(false);
+      });
+  };
+
   let referralCode = ethers.constants.HashZero;
+
   if (!attachedOnChain && userReferralCode) {
     referralCode = userReferralCode;
   }
@@ -1608,9 +1670,6 @@ export default function SwapBox(props) {
 
   const onSwapOptionChange = (opt) => {
     setSwapOption(opt);
-    if (orderOption === STOP) {
-      setOrderOption(MARKET);
-    }
     setAnchorOnFromAmount(true);
     setFromValue("");
     setToValue("");
@@ -1628,7 +1687,7 @@ export default function SwapBox(props) {
     }
   };
 
-  const onConfirmationClick = () => {
+  const onConfirmationClick = async () => {
     if (!active) {
       props.connectWallet();
       return;
@@ -1646,8 +1705,15 @@ export default function SwapBox(props) {
       return;
     }
 
+    console.log(orderOption);
+
     if (orderOption === LIMIT) {
       createIncreaseOrder();
+      return;
+    }
+
+    if (isCloseTrigger) {
+      createDecreaseOrder();
       return;
     }
 
@@ -1672,11 +1738,6 @@ export default function SwapBox(props) {
   }
 
   const onClickPrimary = () => {
-    if (isStopOrder) {
-      setOrderOption(MARKET);
-      return;
-    }
-
     if (!active) {
       props.connectWallet();
       return;
@@ -1723,10 +1784,12 @@ export default function SwapBox(props) {
     setIsHigherSlippageAllowed(false);
   };
 
-  const isStopOrder = orderOption === STOP;
-  const showFromAndToSection = !isStopOrder;
-  const showTriggerPriceSection = !isSwap && !isMarketOrder && !isStopOrder;
-  const showTriggerRatioSection = isSwap && !isMarketOrder && !isStopOrder;
+  const isCloseTrigger = [STOP_LOSS, TAKE_PROFIT].includes(orderOption);
+  const showFromAndToSection = !isCloseTrigger;
+
+  const showLeverageSlider = (isLong || isShort) && !isCloseTrigger;
+  const showTriggerPriceSection = !isSwap && !isMarketOrder && !isCloseTrigger;
+  const showTriggerRatioSection = isSwap && !isMarketOrder;
 
   let fees;
   let feesUsd;
@@ -1827,10 +1890,6 @@ export default function SwapBox(props) {
 
   return (
     <div className="Exchange-swap-box">
-      {/* <div className="Exchange-swap-wallet-box App-box">
-        {active && <div className="Exchange-swap-account" >
-        </div>}
-      </div> */}
       <div className="Exchange-swap-box-inner App-box-highlight">
         <div>
           <Tab
@@ -1843,7 +1902,6 @@ export default function SwapBox(props) {
           {flagOrdersEnabled && (
             <Tab
               options={orderOptions}
-              optionLabels={orderOptionLabels}
               className="Exchange-swap-order-type-tabs"
               type="inline"
               option={orderOption}
@@ -1998,6 +2056,21 @@ export default function SwapBox(props) {
             </div>
           </div>
         )}
+        {isCloseTrigger && (
+          <TriggerCloseSection
+            chainId={chainId}
+            tokens={toTokens}
+            infoTokens={infoTokens}
+            tokenAddress={toTokenAddress}
+            onSelectToken={onSelectToToken}
+            closeSize={closeAmountValue}
+            closeSizeUsd={closeAmountUsd}
+            onSizeChanged={setCloseAmountValue}
+            priceValue={triggerPriceValue}
+            entryMarkPrice={entryMarkPrice}
+            onPriceChanged={setTriggerPriceValue}
+          />
+        )}
         {showTriggerPriceSection && (
           <div className="Exchange-swap-section">
             <div className="Exchange-swap-section-top">
@@ -2043,7 +2116,7 @@ export default function SwapBox(props) {
             </ExchangeInfoRow>
           </div>
         )}
-        {(isLong || isShort) && !isStopOrder && (
+        {showLeverageSlider && (
           <div className="Exchange-leverage-box">
             <div className="Exchange-leverage-slider-settings">
               <Checkbox isChecked={isLeverageSliderEnabled} setIsChecked={setIsLeverageSliderEnabled}>
@@ -2189,24 +2262,6 @@ export default function SwapBox(props) {
                 )}
               </div>
             </ExchangeInfoRow>
-          </div>
-        )}
-        {isStopOrder && (
-          <div className="Exchange-swap-section Exchange-trigger-order-info">
-            Take-profit and stop-loss orders can be set after opening a position. <br />
-            <br />
-            There will be a "Close" button on each position row, clicking this will display the option to set trigger
-            orders. <br />
-            <br />
-            For screenshots and more information, please see the{" "}
-            <a
-              href="https://gmxio.gitbook.io/gmx/trading#stop-loss-take-profit-orders"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              docs
-            </a>
-            .
           </div>
         )}
         <div className="Exchange-swap-button-container">
