@@ -86,6 +86,7 @@ import shortImg from "../../../img/short.svg";
 import swapImg from "../../../img/swap.svg";
 import { useUserReferralCode } from "../../../domain/referrals";
 import { TriggerCloseSection } from "./TriggerCloseSection";
+import { TriggerCloseConfirmationBox } from "./TriggerCloseConfirmationBox";
 
 const SWAP_ICONS = {
   [LONG]: longImg,
@@ -784,24 +785,18 @@ export default function SwapBox(props) {
       }
     }
 
-    console.log("adasda", isCloseTrigger);
+    if (!isCloseTrigger && (!fromAmount || fromAmount.eq(0))) {
+      return [t`Enter an amount`];
+    }
+
+    if (!isCloseTrigger && (!toAmount || toAmount.eq(0))) {
+      return [t`Enter an amount`];
+    }
 
     if (isCloseTrigger) {
-      if (!triggerPriceValue) {
+      if (!triggerPriceValue.length) {
         return [t`Enter close price`];
       }
-
-      console.log("asdadasd???");
-
-      return [false];
-    }
-
-    if (!fromAmount || fromAmount.eq(0)) {
-      return [t`Enter an amount`];
-    }
-
-    if (!toAmount || toAmount.eq(0)) {
-      return [t`Enter an amount`];
     }
 
     const fromTokenInfo = getTokenInfo(infoTokens, fromTokenAddress);
@@ -875,6 +870,16 @@ export default function SwapBox(props) {
     }
 
     if (isCloseTrigger) {
+      if (isLong) {
+        if (orderOption === STOP_LOSS && triggerPriceUsd?.gt(entryMarkPrice)) {
+          return [t`Price should be less than the mark price`];
+        }
+
+        if (orderOption === TAKE_PROFIT && triggerPriceUsd?.lt(entryMarkPrice)) {
+          return [t`Price should be more than the mark price`];
+        }
+      }
+
       return [false];
     }
 
@@ -883,11 +888,13 @@ export default function SwapBox(props) {
     }
 
     let toTokenInfo = getTokenInfo(infoTokens, toTokenAddress);
+
     if (toTokenInfo && toTokenInfo.isStable) {
       return [t`${swapOption === LONG ? "Longing" : "Shorting"} ${toTokenInfo.symbol} not supported`];
     }
 
     const fromTokenInfo = getTokenInfo(infoTokens, fromTokenAddress);
+
     if (fromTokenInfo && fromTokenInfo.balance && fromAmount && fromAmount.gt(fromTokenInfo.balance)) {
       return [t`Insufficient ${fromTokenInfo.symbol} balance`];
     }
@@ -895,6 +902,7 @@ export default function SwapBox(props) {
     if (leverage && leverage.eq(0)) {
       return [t`Enter an amount`];
     }
+
     if (!isMarketOrder && (!triggerPriceValue || triggerPriceUsd.eq(0))) {
       return [t`Enter a price`];
     }
@@ -1495,11 +1503,15 @@ export default function SwapBox(props) {
       Created close order for ${indexToken.symbol} ${isLong ? "Long" : "Short"}
     `;
 
-    const sizeDelta = closeAmount;
+    const sizeDelta = closeAmountUsd;
 
-    const collateralDelta = sizeDelta;
+    const collateralDelta = 0;
 
-    const triggerAboveThreshold = orderOption !== STOP_LOSS;
+    let triggerAboveThreshold = false;
+
+    if ((isLong && orderOption === TAKE_PROFIT) || (isShort && orderOption === STOP_LOSS)) {
+      triggerAboveThreshold = true;
+    }
 
     Api.createDecreaseOrder(
       chainId,
@@ -2491,7 +2503,7 @@ export default function SwapBox(props) {
       </div>
       {renderErrorModal()}
       {renderOrdersToa()}
-      {isConfirming && (
+      {isConfirming && !isCloseTrigger && (
         <ConfirmationBox
           library={library}
           isHigherSlippageAllowed={isHigherSlippageAllowed}
@@ -2537,6 +2549,7 @@ export default function SwapBox(props) {
           minExecutionFeeErrorMessage={minExecutionFeeErrorMessage}
         />
       )}
+      {isConfirming && isCloseTrigger && <TriggerCloseConfirmationBox />}
     </div>
   );
 }

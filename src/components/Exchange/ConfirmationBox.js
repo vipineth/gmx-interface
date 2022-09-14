@@ -144,6 +144,7 @@ export default function ConfirmationBox(props) {
     }
     return isLong ? "Confirm Long" : "Confirm Short";
   };
+
   const title = getTitle();
 
   const existingOrder = useMemo(() => {

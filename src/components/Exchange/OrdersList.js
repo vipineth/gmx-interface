@@ -277,7 +277,7 @@ export default function OrdersList(props) {
             )}
           </td>
           <td>
-            {triggerPricePrefix} {formatAmount(order.triggerPrice, USD_DECIMALS, 2, true)}
+            {triggerPricePrefix}&nbsp;{formatAmount(order.triggerPrice, USD_DECIMALS, 2, true)}
           </td>
           <td>
             <Tooltip

@@ -325,6 +325,8 @@ export default function PositionSeller(props) {
     }
 
     if (isClosing) {
+      console.log("size", { size: Number(position.size) });
+
       sizeDelta = position.size;
       receiveAmount = position.collateral;
     } else if (orderOption === STOP && sizeDelta && existingOrders.length > 0) {
