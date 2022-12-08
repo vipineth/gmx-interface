@@ -28,6 +28,7 @@ import Tooltip from "components/Tooltip/Tooltip";
 
 import "./MarketPoolSwapBox.scss";
 import { MarketPoolSwapConfirmation } from "../MarketPoolSwapConfirmation/MarketPoolSwapConfirmation";
+import { useWeb3React } from "@web3-react/core";
 
 type Props = {
   selectedMarketAddress?: string;
@@ -38,13 +39,14 @@ type Props = {
 
 export function MarketPoolSwapBox(p: Props) {
   const { chainId } = useChainId();
+  const { account } = useWeb3React();
 
   const [operationTab, setOperationTab] = useState(Operation.deposit);
   const [modeTab, setModeTab] = useState(Mode.single);
   const [focusedInput, setFocusedInput] = useState<FocusInputId | undefined>();
   const [isConfirming, setIsConfirming] = useState(false);
 
-  const tokensData = useWhitelistedTokensData(chainId);
+  const tokensData = useWhitelistedTokensData(chainId, { account });
   const marketsData = useMarkets(chainId);
   const marketPoolsData = useMarketPools(chainId);
   const priceImpactConfigsData = usePriceImpactData(chainId, {

@@ -6,6 +6,7 @@ import { useMarkets } from "domain/synthetics/markets/useMarkets";
 import { useWhitelistedTokensData } from "domain/synthetics/tokens/useTokensData";
 import "./MarketDropdown.scss";
 import { getMarketName, getMarkets } from "domain/synthetics/markets/utils";
+import { useWeb3React } from "@web3-react/core";
 
 export type MarketOption = {
   symbol: string;
@@ -19,9 +20,10 @@ export type Props = {
 
 export function MarketDropdown(p: Props) {
   const { chainId } = useChainId();
+  const { account } = useWeb3React();
 
   const marketsData = useMarkets(chainId);
-  const tokensData = useWhitelistedTokensData(chainId);
+  const tokensData = useWhitelistedTokensData(chainId, { account });
 
   const data = { ...marketsData, ...tokensData };
 

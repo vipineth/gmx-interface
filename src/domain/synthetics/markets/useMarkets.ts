@@ -22,7 +22,7 @@ export function useMarkets(chainId: number): MarketsData {
         },
       },
     },
-    parseResponse: (res) => res.marketStore.count.returnValues[0] as number,
+    parseResponse: (res) => res.marketStore.count?.returnValues[0] as number,
   });
 
   const { data: marketsMap } = useMulticall(chainId, "useMarkets-markets", {

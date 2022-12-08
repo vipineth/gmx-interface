@@ -1,55 +1,53 @@
-import { useWeb3React } from "@web3-react/core";
 import Multicall from "abis/Multicall.json";
 import Token from "abis/Token.json";
 import { getContract } from "config/contracts";
+import { Account } from "domain/account";
 import { BigNumber } from "ethers";
 import { isAddressZero } from "lib/legacy";
 import { useMulticall } from "lib/multicall";
 import { useMemo } from "react";
 import { TokenBalancesData } from "./types";
 
-export function useTokenBalances(chainId: number, p: { tokenAddresses: string[] }): TokenBalancesData {
-  const { account } = useWeb3React();
+export function useTokenBalances(chainId: number, p: { account?: Account; addresses?: string[] }): TokenBalancesData {
+  const { account, addresses = [] } = p;
+  const key = account && addresses.length > 0 ? [p.account, addresses.join("-")] : null;
 
   const { data: tokenBalances } = useMulticall(chainId, "useTokenBalances", {
-    key: account && p.tokenAddresses.length > 0 ? [account, p.tokenAddresses.join("-")] : null,
+    key,
     request: () =>
-      p.tokenAddresses.reduce((acc, address) => {
+      addresses.reduce((requests, address) => {
         if (isAddressZero(address)) {
-          acc[address] = {
+          requests[address] = {
             contractAddress: getContract(chainId, "Multicall"),
             abi: Multicall.abi,
             calls: {
               balance: {
                 methodName: "getEthBalance",
-                params: [account],
+                params: [p.account],
               },
             },
           };
         } else {
-          acc[address] = {
+          requests[address] = {
             contractAddress: address,
             abi: Token.abi,
             calls: {
               balance: {
                 methodName: "balanceOf",
-                params: [account],
+                params: [p.account],
               },
             },
           };
         }
 
-        return acc;
+        return requests;
       }, {}),
-    parseResponse: (res) => {
-      const tokenBalances: { [address: string]: BigNumber } = {};
+    parseResponse: (res) =>
+      Object.keys(res).reduce((balances, address) => {
+        balances[address] = res[address].balance.returnValues[0];
 
-      Object.keys(res).forEach((address) => {
-        tokenBalances[address] = res[address].balance.returnValues[0] || BigNumber.from(0);
-      });
-
-      return tokenBalances;
-    },
+        return balances;
+      }, {} as { [address: string]: BigNumber }),
   });
 
   return useMemo(() => {

@@ -8,13 +8,11 @@ import { TokenAllowanceData, TokensData } from "domain/synthetics/tokens/types";
 
 import { ApproveTokenButton } from "components/ApproveTokenButton/ApproveTokenButton";
 import {
-  convertToUsdByPrice,
   formatTokenAmount,
   formatTokenAmountWithUsd,
   getTokenAllowance,
   getTokenConfig,
   getUsdFromTokenAmount,
-  MOCK_GM_PRICE,
 } from "domain/synthetics/tokens/utils";
 import { BigNumber } from "ethers";
 import { GM_DECIMALS } from "lib/legacy";
@@ -80,9 +78,6 @@ export function MarketPoolSwapConfirmation(p: Props) {
 
   const firstTokenText = getTokenText(p.tokensData, p.firstSwapTokenAddress, p.firstSwapTokenAmount);
   const secondTokenText = getTokenText(p.tokensData, p.secondSwapTokenAddress, p.secondSwapTokenAmount);
-
-  const gmUsdAmount = convertToUsdByPrice(p.gmSwapAmount, GM_DECIMALS, MOCK_GM_PRICE);
-  const gmTokenText = formatTokenAmountWithUsd(p.gmSwapAmount, gmUsdAmount, "GM", GM_DECIMALS);
 
   const market = getMarket(marketsData, p.marketTokenAddress);
   const firstToken = p.firstSwapTokenAddress ? getToken(chainId, p.firstSwapTokenAddress) : undefined;
@@ -172,16 +167,14 @@ export function MarketPoolSwapConfirmation(p: Props) {
                 </div>
               )}
               <div className="Confirmation-box-main-icon"></div>
-              <div>
+              {/* <div>
                 <Trans>Receive</Trans>&nbsp;{gmTokenText}
-              </div>
+              </div> */}
             </>
           )}
           {p.operationType === Operation.withdraw && (
             <>
-              <div>
-                <Trans>Pay</Trans>&nbsp;{gmTokenText}
-              </div>
+              <div>{/* <Trans>Pay</Trans>&nbsp;{gmTokenText} */}</div>
               <div className="Confirmation-box-main-icon"></div>
               <div>
                 <Trans>Receive</Trans>&nbsp;{firstTokenText}

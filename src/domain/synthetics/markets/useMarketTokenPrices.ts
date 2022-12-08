@@ -2,11 +2,10 @@ import Reader from "abis/SyntheticsReader.json";
 import { useMulticall } from "lib/multicall";
 import { useMarkets } from "./useMarkets";
 import { getMarkets } from "./utils";
-import { useTokenConfigs } from "../tokens/useTokenConfigs";
 import { useTokenRecentPrices } from "../tokens/useTokenRecentPrices";
 import { getContract } from "config/contracts";
 import { ContractCallConfig } from "lib/multicall/types";
-import { getTokenPriceData } from "../tokens/utils";
+import { getTokenPriceData, tryWrapToken } from "../tokens/utils";
 import { useMemo } from "react";
 import { TokenPriceData } from "../tokens/types";
 import { BigNumber, ethers } from "ethers";
@@ -14,6 +13,7 @@ import { MarketTokenPricesData } from "./types";
 import { getWrappedToken } from "config/tokens";
 import { expandDecimals } from "lib/numbers";
 import { USD_DECIMALS } from "lib/legacy";
+import { useTokenConfigs } from "../tokens/useTokenConfigs";
 
 export function useMarketTokenPrices(
   chainId: number,
@@ -39,8 +39,8 @@ export function useMarketTokenPrices(
 
       const marketProps = {
         marketToken: market.marketTokenAddress,
-        longToken: toWrappedNativeToken(chainId, market.longTokenAddress),
-        shortToken: toWrappedNativeToken(chainId, market.shortTokenAddress),
+        longToken: tryWrapToken(chainId, market.longTokenAddress),
+        shortToken: tryWrapToken(chainId, market.shortTokenAddress),
         indexToken: market.indexTokenAddress,
         data: market.data,
       };
@@ -95,14 +95,4 @@ function formatPriceData(price?: TokenPriceData) {
     min: price.minPrice,
     max: price.maxPrice,
   };
-}
-
-function toWrappedNativeToken(chainId: number, address: string) {
-  if (address === ethers.constants.AddressZero) {
-    const token = getWrappedToken(chainId);
-
-    return token.address;
-  }
-
-  return address;
 }

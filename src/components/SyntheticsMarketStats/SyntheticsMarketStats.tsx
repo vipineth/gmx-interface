@@ -21,6 +21,7 @@ import {
   getTokenTotalSupply,
 } from "domain/synthetics/tokens/utils";
 import "./SyntheticsMarketStats.scss";
+import { useWeb3React } from "@web3-react/core";
 
 type Props = {
   marketKey?: string;
@@ -28,13 +29,14 @@ type Props = {
 
 export function SyntheticsMarketStats(p: Props) {
   const { chainId } = useChainId();
+  const { account } = useWeb3React();
 
   const marketsData = useMarkets(chainId);
   const poolsData = useMarketPools(chainId);
   const marketPricesData = useMarketTokenPrices(chainId);
-  const tokensData = useWhitelistedTokensData(chainId);
-  const marketTokenBalancesData = useTokenBalances(chainId, { tokenAddresses: p.marketKey ? [p.marketKey] : [] });
-  const marketTotalSupplyData = useTokenTotalSupply(chainId, { tokenAddresses: p.marketKey ? [p.marketKey] : [] });
+  const tokensData = useWhitelistedTokensData(chainId, { account });
+  const marketTokenBalancesData = useTokenBalances(chainId, { addresses: p.marketKey ? [p.marketKey] : [] });
+  const marketTotalSupplyData = useTokenTotalSupply(chainId, { addresses: p.marketKey ? [p.marketKey] : [] });
 
   const data = {
     ...marketsData,

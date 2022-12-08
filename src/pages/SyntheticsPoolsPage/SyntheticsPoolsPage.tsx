@@ -9,6 +9,8 @@ import { useEffect, useState } from "react";
 import "./SyntheticsPoolsPage.scss";
 import { useMarkets } from "domain/synthetics/markets/useMarkets";
 import { getMarkets } from "domain/synthetics/markets/utils";
+import { useMarketTokensData } from "domain/synthetics/markets/useMarketTokensData";
+import { useWeb3React } from "@web3-react/core";
 
 type Props = {
   connectWallet: () => void;
@@ -16,6 +18,7 @@ type Props = {
 
 export function SyntheticsPoolsPage(p: Props) {
   const { chainId } = useChainId();
+  const { account } = useWeb3React();
 
   const marketsData = useMarkets(chainId);
   const markets = getMarkets(marketsData);
@@ -28,6 +31,8 @@ export function SyntheticsPoolsPage(p: Props) {
       setSelectedMarketKey(markets[0].marketTokenAddress);
     }
   }, [selectedMarketKey, markets]);
+
+  useMarketTokensData(chainId, { account });
 
   return (
     <SEO title={getPageTitle("Synthetics pools")}>

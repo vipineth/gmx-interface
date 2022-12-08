@@ -5,11 +5,13 @@ import { TokenTotalSupplyData } from "./types";
 import { isAddressZero } from "lib/legacy";
 import { useMemo } from "react";
 
-export function useTokenTotalSupply(chainId: number, p: { tokenAddresses: string[] }): TokenTotalSupplyData {
+export function useTokenTotalSupply(chainId: number, p: { addresses?: string[] }): TokenTotalSupplyData {
+  const { addresses = [] } = p;
+
   const { data } = useMulticall(chainId, "useTokenTotalSupply", {
-    key: p.tokenAddresses.length > 0 && [p.tokenAddresses.join("-")],
+    key: addresses.length > 0 && [addresses.join("-")],
     request: () =>
-      p.tokenAddresses
+      addresses
         .filter((address) => !isAddressZero(address))
         .reduce((acc, address) => {
           acc[address] = {

@@ -94,7 +94,7 @@ export function useGmTokenState(chainId: number, p: { marketAddress?: string }):
   const marketPricesData = useMarketTokenPrices(chainId, { maximize: false });
 
   const marketTokenBalancesData = useTokenBalances(chainId, {
-    tokenAddresses: p.marketAddress ? [p.marketAddress] : [],
+    addresses: p.marketAddress ? [p.marketAddress] : [],
   });
 
   const [inputValue, setInputValue] = useState<string | undefined>();
