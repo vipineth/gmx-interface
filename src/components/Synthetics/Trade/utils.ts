@@ -2,13 +2,7 @@ import { t } from "@lingui/macro";
 import { HIGH_PRICE_IMPACT_BP } from "config/synthetics";
 import { NATIVE_TOKEN_ADDRESS, getWrappedToken } from "config/tokens";
 import { SwapPathItem } from "domain/synthetics/exchange";
-import {
-  ExecutionFeeParams,
-  PriceImpact,
-  getExecutionFee,
-  getPriceImpact,
-  usePriceImpactConfigs,
-} from "domain/synthetics/fees";
+import { ExecutionFeeParams, PriceImpact, getExecutionFee, getPriceImpactUsd } from "domain/synthetics/fees";
 import { getMarkets, getOpenInterest, useMarketsData } from "domain/synthetics/markets";
 import { useOpenInterestData } from "domain/synthetics/markets/useOpenInterestData";
 import {
@@ -326,7 +320,7 @@ export function useFeesState(p: {
 
   const { tokensData } = useAvailableTokensData(chainId);
   const { openInterestData } = useOpenInterestData(chainId);
-  const priceImpactConfigs = usePriceImpactConfigs(chainId);
+  const priceImpactConfigs = {} as any;
 
   const executionFee = getExecutionFee(tokensData);
 
@@ -352,14 +346,16 @@ export function useFeesState(p: {
   const longDeltaUsd = p.isLong ? p.sizeDeltaUsd : BigNumber.from(0);
   const shortDeltaUsd = p.isLong ? BigNumber.from(0) : p.sizeDeltaUsd;
 
-  const positionPriceImpact = getPriceImpact(
-    priceImpactConfigs,
-    p.marketAddress,
-    currentLong,
-    currentShort,
-    longDeltaUsd,
-    shortDeltaUsd
-  );
+  const positionPriceImpact = undefined as any;
+
+  // const positionPriceImpact = getPriceImpact(
+  //   priceImpactConfigs,
+  //   p.marketAddress,
+  //   currentLong,
+  //   currentShort,
+  //   longDeltaUsd,
+  //   shortDeltaUsd
+  // );
 
   const totalFeeUsd = BigNumber.from(0)
     .add(p.swapFeeUsd || BigNumber.from(0))

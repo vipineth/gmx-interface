@@ -1,5 +1,4 @@
 import { t } from "@lingui/macro";
-import { applySwapImpactWithCap } from "domain/synthetics/fees";
 import { MarketsData, getMarket, getMarketName } from "domain/synthetics/markets";
 import {
   TokenData,
@@ -209,34 +208,32 @@ export function getMinOutputAmountForSwapOrder(p: {
   priceImpactDeltaUsd: BigNumber;
 }) {
   // priceImpact in usd?
-  let amountOut: BigNumber;
+  // let amountOut: BigNumber;
 
-  // todo on each swap step?
-  if (p.priceImpactDeltaUsd.gt(0)) {
-    // TODO: amount after fee
-    const amountIn = p.fromTokenAmount;
+  // // todo on each swap step?
+  // if (p.priceImpactDeltaUsd.gt(0)) {
+  //   // TODO: amount after fee
+  //   const amountIn = p.fromTokenAmount;
 
-    amountOut = amountIn.mul(p.toTokenPrices.minPrice).div(p.fromTokenPrices.maxPrice);
+  //   amountOut = amountIn.mul(p.toTokenPrices.minPrice).div(p.fromTokenPrices.maxPrice);
 
-    const positiveImpactAmount = applySwapImpactWithCap({
-      tokenPrices: p.toTokenPrices,
-      priceImpactUsd: p.priceImpactDeltaUsd,
-    });
+  //   // const positiveImpactAmount = applySwapImpactWithCap({
+  //   //   tokenPrices: p.toTokenPrices,
+  //   //   priceImpactUsd: p.priceImpactDeltaUsd,
+  //   // });
 
-    amountOut = amountOut.add(positiveImpactAmount);
-  } else {
-    const negativeImpactAmount = applySwapImpactWithCap({
-      tokenPrices: p.fromTokenPrices,
-      priceImpactUsd: p.priceImpactDeltaUsd,
-    });
+  //   // amountOut = amountOut.add(positiveImpactAmount);
+  // } else {
+  //   // const negativeImpactAmount = applySwapImpactWithCap({
+  //   //   tokenPrices: p.fromTokenPrices,
+  //   //   priceImpactUsd: p.priceImpactDeltaUsd,
+  //   // });
+  //   // TODO: amount after fee
+  //   // const amountIn = p.fromTokenAmount.sub(negativeImpactAmount.mul(-1));
+  //   // amountOut = amountIn.mul(p.fromTokenPrices.minPrice).div(p.toTokenPrices.maxPrice);
+  // }
 
-    // TODO: amount after fee
-    const amountIn = p.fromTokenAmount.sub(negativeImpactAmount.mul(-1));
-
-    amountOut = amountIn.mul(p.fromTokenPrices.minPrice).div(p.toTokenPrices.maxPrice);
-  }
-
-  return amountOut;
+  return BigNumber.from(0);
 }
 
 export function getMinOutputAmountForDecreaseOrder(p: {

@@ -1,5 +1,5 @@
 import { BigNumber, BigNumberish, ethers } from "ethers";
-import { USD_DECIMALS } from "./legacy";
+import { PRECISION, USD_DECIMALS } from "./legacy";
 
 export function bigNumberify(n: BigNumberish) {
   try {
@@ -210,4 +210,8 @@ export function roundUpDivision(a: BigNumber, b: BigNumber) {
   }
 
   return a.add(b).sub(1).div(b);
+}
+
+export function applyFactor(value: BigNumber, factor: BigNumber) {
+  return value.mul(factor).div(PRECISION);
 }

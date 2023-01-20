@@ -39,6 +39,8 @@ export const TOTAL_BORROWING_KEY = hashString("TOTAL_BORROWING");
 
 export const POSITION_IMPACT_POOL_AMOUNT_KEY = hashString("POSITION_IMPACT_POOL_AMOUNT");
 
+export const SWAP_IMPACT_POOL_AMOUNT_KEY = hashString("SWAP_IMPACT_POOL_AMOUNT");
+
 export const CUMULATIVE_BORROWING_FACTOR_KEY = hashString("CUMULATIVE_BORROWING_FACTOR");
 
 export const MIN_COLLATERAL_USD_KEY = hashString("MIN_COLLATERAL_USD");
@@ -126,6 +128,10 @@ export function totalBorrowingKey(market: string, isLong: boolean) {
 
 export function positionImpactPoolAmountKey(market: string) {
   return hashData(["bytes32", "address"], [POSITION_IMPACT_POOL_AMOUNT_KEY, market]);
+}
+
+export function swapImpactPoolAmountKey(market: string, token: string) {
+  return hashData(["bytes32", "address", "address"], [SWAP_IMPACT_POOL_AMOUNT_KEY, market, token]);
 }
 
 export function orderKey(nonce: BigNumber) {

@@ -30,7 +30,7 @@ export function GmFees(p: Props) {
             <div>
               <StatsTooltipRow
                 label={t`Price impact`}
-                value={formatFee(priceImpact?.impactUsd, priceImpact?.basisPoints) || "..."}
+                value={formatFee(priceImpact?.impactDeltaUsd, priceImpact?.basisPoints) || "..."}
                 showDollar={false}
               />
               <StatsTooltipRow

@@ -17,8 +17,7 @@ import { BigNumber } from "ethers";
 import { IoMdSwap } from "react-icons/io";
 
 import { useTokenInputState } from "domain/synthetics/exchange";
-import { getExecutionFee, getPriceImpact } from "domain/synthetics/fees";
-import { usePriceImpactConfigs } from "domain/synthetics/fees/usePriceImpactConfigs";
+import { getExecutionFee, getPriceImpactUsd } from "domain/synthetics/fees";
 import { useMarketsData, useMarketsPoolsData, useMarketTokensData } from "domain/synthetics/markets";
 import { GmConfirmationBox } from "../GmConfirmationBox/GmConfirmationBox";
 
@@ -62,7 +61,7 @@ export function GmSwapBox(p: Props) {
   const { marketsData } = useMarketsData(chainId);
   const { marketTokensData } = useMarketTokensData(chainId);
   const { poolsData } = useMarketsPoolsData(chainId);
-  const priceImpactConfigsData = usePriceImpactConfigs(chainId);
+  const priceImpactConfigsData = {} as any;
 
   const marketsOptions: DropdownOption[] = Object.values(marketsData).map((market) => ({
     label: getMarketName(marketsData, tokensData, market.marketTokenAddress, true, true)!,
@@ -118,14 +117,16 @@ export function GmSwapBox(p: Props) {
     "midPrice"
   );
 
-  const priceImpact = getPriceImpact(
-    priceImpactConfigsData,
-    market?.marketTokenAddress,
-    currentLongUsd,
-    currentShortUsd,
-    longDelta?.usdDelta,
-    shortDelta?.usdDelta
-  );
+  const priceImpact = undefined as any;
+
+  // const priceImpact = getPriceImpact(
+  //   priceImpactConfigsData,
+  //   market?.marketTokenAddress,
+  //   currentLongUsd,
+  //   currentShortUsd,
+  //   longDelta?.usdDelta,
+  //   shortDelta?.usdDelta
+  // );
 
   const isHighPriceImpact = priceImpact?.impactUsd.lt(0) && priceImpact?.basisPoints.gte(HIGH_PRICE_IMPACT_BP);
 

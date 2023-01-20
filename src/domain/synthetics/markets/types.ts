@@ -15,18 +15,6 @@ export type Market = {
   perp: string;
 };
 
-export type MarketsData = {
-  [marketTokenAddress: string]: Market;
-};
-
-export type MarketTokenData = TokenData & {
-  totalSupply?: BigNumber;
-};
-
-export type MarketTokensData = {
-  [marketAddress: string]: MarketTokenData;
-};
-
 export type PoolData = {
   longPoolAmount: BigNumber;
   shortPoolAmount: BigNumber;
@@ -42,6 +30,9 @@ export type PoolData = {
 
   positionImpactPoolAmount: BigNumber;
 
+  swapImpactPoolAmountLong: BigNumber;
+  swapImpactPoolAmountShort: BigNumber;
+
   netPnlMax: BigNumber;
   netPnlMin: BigNumber;
 
@@ -49,6 +40,13 @@ export type PoolData = {
   pnlLongMin: BigNumber;
   pnlShortMax: BigNumber;
   pnlShortMin: BigNumber;
+};
+
+export type OpenInterestData = {
+  longInterestUsd: BigNumber;
+  shortInterestUsd: BigNumber;
+  longInterestInTokens: BigNumber;
+  shortInterestInTokens: BigNumber;
 };
 
 export type RawContractDeposit = {
@@ -97,13 +95,18 @@ export type MarketsPoolsData = {
   [marketAddress: string]: PoolData;
 };
 
-export type OpenInterestData = {
-  longInterestUsd: BigNumber;
-  shortInterestUsd: BigNumber;
-  longInterestInTokens: BigNumber;
-  shortInterestInTokens: BigNumber;
-};
-
 export type MarketsOpenInterestData = {
   [marketAddress: string]: OpenInterestData;
+};
+
+export type MarketsData = {
+  [marketTokenAddress: string]: Market;
+};
+
+export type MarketTokenData = TokenData & {
+  totalSupply?: BigNumber;
+};
+
+export type MarketTokensData = {
+  [marketAddress: string]: MarketTokenData;
 };

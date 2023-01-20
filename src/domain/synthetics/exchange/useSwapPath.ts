@@ -4,7 +4,7 @@ import { useChainId } from "lib/chains";
 import { debounce } from "lodash";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { SwapParams, SwapPathItem, findSwapPath, getMarketsGraph, getSwapPathForPosition } from "./swapPath";
-import { getSwapFee, usePriceImpactConfigs } from "domain/synthetics/fees";
+import { getSwapFee } from "domain/synthetics/fees";
 import { useAvailableTokensData } from "domain/synthetics/tokens";
 import { convertTokenAddress } from "config/tokens";
 
@@ -37,7 +37,7 @@ export function useSwapPath(p: {
   const { marketsData } = useMarketsData(chainId);
   const { poolsData } = useMarketsPoolsData(chainId);
   const { tokensData } = useAvailableTokensData(chainId);
-  const priceImpactConfigsData = usePriceImpactConfigs(chainId);
+  const priceImpactConfigsData = {} as any;
 
   const graph = useMemo(() => {
     return getMarketsGraph(marketsData);
