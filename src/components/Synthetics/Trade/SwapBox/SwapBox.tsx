@@ -262,7 +262,7 @@ export function SwapBox(p: Props) {
         collateralDeltaAmount: collateralDeltaAmount || BigNumber.from(0),
         pnlToken: existingPosition?.pnlToken,
         feesUsd: fees.totalFeeUsd,
-        priceImpactUsd: fees.positionPriceImpact?.impactUsd || BigNumber.from(0),
+        priceImpactUsd: fees.positionPriceImpact?.impactDeltaUsd || BigNumber.from(0),
       })
     : undefined;
 

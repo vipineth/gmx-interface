@@ -20,6 +20,7 @@ export type ExecutionFees = {
 
 export type SwapStepFees = {
   tokenInAddress: string;
+  marketAddress: string;
   tokenOutAddress: string;
   swapFeeAmount: BigNumber;
   swapFeeUsd: BigNumber;

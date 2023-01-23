@@ -8,7 +8,7 @@ import {
   getTokenData,
 } from "domain/synthetics/tokens";
 import { BigNumber } from "ethers";
-import { USD_DECIMALS } from "lib/legacy";
+import { BASIS_POINTS_DIVISOR, USD_DECIMALS } from "lib/legacy";
 import { applyFactor, expandDecimals, formatAmount, formatUsd, parseValue } from "lib/numbers";
 import { ExecutionFeeParams, MarketsFeesConfigsData, SwapStepFees as SwapFees, TotalSwapFees } from "../types";
 import { applySwapImpactWithCap, getPriceImpactForSwap } from "./priceImpact";
@@ -33,13 +33,23 @@ export function getSwapFees(
   marketAddress: string | undefined,
   tokenInAddress: string | undefined,
   tokenOutAddress: string | undefined,
-  amountIn: BigNumber
+  amountIn: BigNumber | undefined
 ): SwapFees | undefined {
   const feeConfig = getMarketFeesConfig(feesConfigs, marketAddress);
   const tokenIn = getTokenData(tokensData, tokenInAddress);
   const tokenOut = getTokenData(tokensData, tokenOutAddress);
 
-  if (!feeConfig || !tokenInAddress || !tokenOutAddress || !tokenIn?.prices || !tokenOut?.prices) return undefined;
+  if (
+    !feeConfig ||
+    !marketAddress ||
+    !tokenInAddress ||
+    !tokenOutAddress ||
+    !tokenIn?.prices ||
+    !tokenOut?.prices ||
+    !amountIn?.gt(0)
+  ) {
+    return undefined;
+  }
 
   const swapFeeAmount = applyFactor(amountIn, feeConfig.swapFeeFactor);
   const swapFeeUsd = convertToUsd(swapFeeAmount, tokenIn.decimals, tokenIn.prices.maxPrice)!;
@@ -60,11 +70,12 @@ export function getSwapFees(
 
   if (!priceImpact) return undefined;
 
-  // round amountOut down
   const inPriceMin = convertToContractPrice(tokenIn.prices.minPrice, tokenIn.decimals);
   const outPriceMax = convertToContractPrice(tokenOut.prices.maxPrice, tokenOut?.decimals);
 
   let cappedImpactDeltaUsd: BigNumber;
+
+  // round amountOut down
   let amountOut: BigNumber = amountIn.mul(inPriceMin).div(outPriceMax);
 
   if (priceImpact.impactDeltaUsd.gt(0)) {
@@ -100,12 +111,13 @@ export function getSwapFees(
   const totalFeeUsd = swapFeeUsd.add(cappedImpactDeltaUsd);
 
   return {
+    swapFeeUsd,
+    swapFeeAmount,
+    totalFeeUsd,
+    marketAddress,
     tokenInAddress,
     tokenOutAddress,
-    swapFeeAmount,
-    swapFeeUsd,
     cappedImpactDeltaUsd,
-    totalFeeUsd,
     amountInAfterFees,
     amountOut,
   };
@@ -127,21 +139,21 @@ export function getTotalSwapFees(swapStepsFees?: SwapFees[]): TotalSwapFees | un
     amountOut: swapStepsFees[swapStepsFees.length - 1].amountOut,
   };
 
-  //   let priceImpactDelta = BigNumber.from(0);
-
   for (const swapStep of swapStepsFees) {
     totalFees.totalSwapFeeUsd = totalFees.totalSwapFeeUsd.add(swapStep.swapFeeUsd);
     totalFees.totalPriceImpact.impactDeltaUsd = totalFees.totalPriceImpact.impactDeltaUsd.add(
       swapStep.cappedImpactDeltaUsd
     );
-
     totalFees.totalFeeUsd = totalFees.totalFeeUsd.add(swapStep.totalFeeUsd);
-    totalFees.amountOut = totalFees.amountOut.add(swapStep.amountOut);
-
-    // priceImpactDelta = swapStep.isPositiveImpact
-    //   ? priceImpactDelta.add(swapStep.cappedImpactDeltaUsd)
-    //   : priceImpactDelta.sub(swapStep.cappedImpactDeltaUsd);
   }
+
+  const amountIn = swapStepsFees[0].amountInAfterFees;
+
+  totalFees.totalPriceImpact.basisPoints = amountIn.gt(0)
+    ? totalFees.totalPriceImpact.impactDeltaUsd.mul(BASIS_POINTS_DIVISOR).div(amountIn)
+    : BigNumber.from(0);
+
+  return totalFees;
 }
 
 // export function getDepositFees(depositAmount: BigNumber, swapFeeFactor: BigNumber) {

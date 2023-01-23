@@ -227,7 +227,7 @@ export function ConfirmationBox(p: Props) {
           targetCollateralAddress: p.collateralTokenAddress,
           receiveTokenAddress: p.collateralTokenAddress,
           triggerPrice: p.triggerPrice,
-          priceImpactDelta: p.fees.positionPriceImpact?.impactUsd || BigNumber.from(0),
+          priceImpactDelta: p.fees.positionPriceImpact?.impactDeltaUsd || BigNumber.from(0),
           allowedSlippage: DEFAULT_SLIPPAGE_AMOUNT,
           sizeDeltaUsd: p.closeSizeUsd,
           orderType: orderType,
