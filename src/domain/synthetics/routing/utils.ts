@@ -6,20 +6,21 @@ import {
   getAvailableUsdLiquidityForPosition,
   getMarkets,
 } from "domain/synthetics/markets";
-import { BigNumber } from "ethers";
+import { BigNumber, ethers } from "ethers";
 import { MarketsFeesConfigsData, getSwapFees } from "../fees";
 import { TokensData, convertToUsd, getTokenData } from "../tokens";
 import { Edge, MarketsGraph, SwapEstimator } from "./types";
 
+// todo: by price impact
 export function getBestMarketForPosition(
   marketsData: MarketsData,
   poolsData: MarketsPoolsData,
   openInterestData: MarketsOpenInterestData,
   tokensData: TokensData,
-  indexTokenAddress: string,
-  collateralTokenAddress?: string,
-  sizeDeltaUsd?: BigNumber,
-  isLong?: boolean
+  indexTokenAddress: string | undefined,
+  collateralTokenAddress: string | undefined,
+  sizeDeltaUsd: BigNumber | undefined,
+  isLong: boolean | undefined
 ) {
   if (!collateralTokenAddress || !sizeDeltaUsd || !indexTokenAddress || typeof isLong === "undefined") return undefined;
 
@@ -43,6 +44,41 @@ export function getBestMarketForPosition(
       );
 
       if (liquidity?.gte(sizeDeltaUsd) && (!bestLiquidity || liquidity.lt(bestLiquidity))) {
+        bestMarketAddress = m.marketTokenAddress;
+        bestLiquidity = liquidity;
+      }
+    }
+  }
+
+  return bestMarketAddress;
+}
+
+export function getMostAbundantMarketForSwap(
+  marketsData: MarketsData,
+  poolsData: MarketsPoolsData,
+  openInterestData: MarketsOpenInterestData,
+  tokensData: TokensData,
+  toTokenAddress: string | undefined
+) {
+  if (!toTokenAddress) return undefined;
+
+  const markets = getMarkets(marketsData);
+
+  let bestMarketAddress: string | undefined;
+  let bestLiquidity: BigNumber | undefined;
+
+  for (const m of markets) {
+    if ([m.longTokenAddress, m.shortTokenAddress].includes(toTokenAddress)) {
+      const liquidity = getAvailableUsdLiquidityForCollateral(
+        marketsData,
+        poolsData,
+        openInterestData,
+        tokensData,
+        m.marketTokenAddress,
+        toTokenAddress
+      );
+
+      if (liquidity?.gt(0) && (!bestLiquidity || liquidity.gt(bestLiquidity))) {
         bestMarketAddress = m.marketTokenAddress;
         bestLiquidity = liquidity;
       }
@@ -97,7 +133,7 @@ export const createSwapEstimator = (
   openInterestData: MarketsOpenInterestData,
   tokensData: TokensData,
   feeConfigs: MarketsFeesConfigsData
-) => {
+): SwapEstimator => {
   return (e: Edge, usdIn: BigNumber) => {
     const outToken = getTokenData(tokensData, e.to);
 
@@ -113,11 +149,19 @@ export const createSwapEstimator = (
     const swapFee = getSwapFees(marketsData, poolsData, tokensData, feeConfigs, e.marketAddress, e.from, usdIn);
     const usdOut = convertToUsd(swapFee?.amountOut, outToken?.decimals, outToken?.prices?.maxPrice);
 
-    if (!usdOut || !outLiquidity?.gt(usdOut)) {
-      return BigNumber.from(0);
+    const fees = swapFee?.swapFeeUsd.sub(swapFee.cappedImpactDeltaUsd);
+
+    if (!usdOut || !outLiquidity?.gt(usdOut) || !fees) {
+      return {
+        usdOut: BigNumber.from(0),
+        fees: ethers.constants.MaxUint256,
+      };
     }
 
-    return usdOut;
+    return {
+      usdOut,
+      fees,
+    };
   };
 };
 
@@ -132,7 +176,9 @@ export function findBestSwapPath(
     return [];
   }
 
-  const path = bellmanFord(graph, from, to, usdIn, estimator);
+  // const path = bellmanFord(graph, from, to, usdIn, estimator);
+
+  const path = dfs(graph, from, to, usdIn, estimator);
 
   if (path?.length) {
     return path;
@@ -141,6 +187,64 @@ export function findBestSwapPath(
   }
 }
 
+export function dfs(
+  graph: MarketsGraph,
+  from: string,
+  to: string,
+  usdIn: BigNumber,
+  estimator: SwapEstimator,
+  maxDepth = 3
+) {
+  if (maxDepth === 0) {
+    return undefined;
+  }
+
+  const edges = graph.abjacencyList[from];
+
+  if (!edges?.length) {
+    return undefined;
+  }
+
+  const targetEdges = edges.filter((v) => {
+    return v.to === to;
+  });
+
+  if (targetEdges.length > 0) {
+    let bestSwap = targetEdges[0];
+    let bestSwapStats = estimator(bestSwap, usdIn);
+
+    for (const e of targetEdges) {
+      const swapStats = estimator(e, usdIn);
+
+      if (swapStats.usdOut.gt(bestSwapStats.usdOut)) {
+        bestSwap = e;
+        bestSwapStats = swapStats;
+      }
+    }
+
+    if (bestSwapStats.usdOut.gt(0)) {
+      return [bestSwap];
+    }
+
+    return undefined;
+  }
+
+  for (const e of edges) {
+    const swapStats = estimator(e, usdIn);
+
+    if (swapStats.usdOut.gt(0)) {
+      const path = dfs(graph, e.to, to, swapStats.usdOut, estimator, maxDepth - 1);
+
+      if (path) {
+        return [e, ...path];
+      }
+    }
+  }
+
+  return undefined;
+}
+
+// TODO
 export function bellmanFord(graph: MarketsGraph, from: string, to: string, usdIn: BigNumber, estimator: SwapEstimator) {
   const edges = graph.edges;
   const nodes = Object.keys(graph.abjacencyList);
@@ -150,21 +254,25 @@ export function bellmanFord(graph: MarketsGraph, from: string, to: string, usdIn
   }
 
   const usdOut = {};
+  const fees = {};
   const previous: { [token: string]: Edge | null } = {};
 
   for (const node of nodes) {
     usdOut[node] = BigNumber.from(0);
+    fees[node] = ethers.constants.MaxUint256;
     previous[node] = null;
   }
 
   usdOut[from] = usdIn;
+  fees[from] = BigNumber.from(0);
 
   for (let i = 0; i < nodes.length; i++) {
     for (const edge of edges) {
       const { from, to } = edge;
-      const swapUsdOut = estimator(edge, usdOut[from]);
+      const { fees: swapFees, usdOut: swapUsdOut } = estimator(edge, usdOut[from]);
 
-      if (swapUsdOut.gt(usdOut[to])) {
+      if (fees[from].add(swapFees).lt(fees[to])) {
+        fees[to] = fees[from].add(swapFees);
         usdOut[to] = swapUsdOut;
         previous[to] = edge;
       }
@@ -173,9 +281,9 @@ export function bellmanFord(graph: MarketsGraph, from: string, to: string, usdIn
 
   for (const edge of edges) {
     const { from, to } = edge;
-    const swapUsdOut = estimator(edge, usdOut[from]);
+    const { fees: swapFee } = estimator(edge, usdOut[from]);
 
-    if (swapUsdOut.gt(usdOut[to])) {
+    if (fees[from].add(swapFee).lt(fees[to])) {
       throw new Error("Negative cycle detected");
     }
   }

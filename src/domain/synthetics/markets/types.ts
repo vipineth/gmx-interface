@@ -36,10 +36,10 @@ export type PoolData = {
   netPnlMax: BigNumber;
   netPnlMin: BigNumber;
 
-  pnlLongMax: BigNumber;
-  pnlLongMin: BigNumber;
-  pnlShortMax: BigNumber;
-  pnlShortMin: BigNumber;
+  // pnlLongMax: BigNumber;
+  // pnlLongMin: BigNumber;
+  // pnlShortMax: BigNumber;
+  // pnlShortMin: BigNumber;
 };
 
 export type OpenInterestData = {

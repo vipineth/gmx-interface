@@ -18,4 +18,10 @@ export type MarketsGraph = {
 /**
  * returns amountOut in usd
  */
-export type SwapEstimator = (e: Edge, usdIn: BigNumber) => BigNumber;
+export type SwapEstimator = (
+  e: Edge,
+  usdIn: BigNumber
+) => {
+  fees: BigNumber;
+  usdOut: BigNumber;
+};

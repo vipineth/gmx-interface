@@ -40,7 +40,7 @@ import {
   getPositionKey,
 } from "domain/synthetics/positions";
 import { useChainId } from "lib/chains";
-import { BASIS_POINTS_DIVISOR, DUST_USD, USD_DECIMALS } from "lib/legacy";
+import { BASIS_POINTS_DIVISOR, DEFAULT_SLIPPAGE_AMOUNT, DUST_USD, USD_DECIMALS } from "lib/legacy";
 import { useLocalStorageSerializeKey } from "lib/localStorage";
 import { bigNumberify, formatAmount, formatTokenAmount, formatUsd, parseValue } from "lib/numbers";
 import { useEffect, useState } from "react";
@@ -67,6 +67,7 @@ import { useWeb3React } from "@web3-react/core";
 import { ValueTransition } from "components/ValueTransition/ValueTransition";
 import "./SwapBox.scss";
 import { useSwapRoute } from "domain/synthetics/routing/useSwapRoute";
+import { SwapCard } from "../SwapCard/SwapCard";
 
 enum FocusedInput {
   From = "From",
@@ -129,7 +130,7 @@ export function SwapBox(p: Props) {
 
   const selectedMarket = getMarket(marketsData, p.selectedMarketAddress);
   const marketOptions: DropdownOption[] = Object.values(marketsData).map((market) => ({
-    label: `${getTokenData(tokensData, market.indexTokenAddress)?.symbol}/${market.perp}`,
+    label: `${getTokenData(tokensData, market.indexTokenAddress, "native")?.symbol}/${market.perp}`,
     value: market.marketTokenAddress,
   }));
 
@@ -139,12 +140,12 @@ export function SwapBox(p: Props) {
   );
   const collateralToken = getTokenData(tokensData, collateralTokenAddress);
 
-  const fromTokenState = useTokenInputState(tokensData, {
+  const fromTokenInput = useTokenInputState(tokensData, {
     initialTokenAddress: savedFromToken,
     priceType: "minPrice",
   });
 
-  const toTokenState = useTokenInputState(tokensData, {
+  const toTokenInput = useTokenInputState(tokensData, {
     initialTokenAddress: savedToToken,
     priceType: isShort ? "minPrice" : "maxPrice",
   });
@@ -158,7 +159,7 @@ export function SwapBox(p: Props) {
 
   const { availableFromTokens, availableToTokens, availableCollaterals, infoTokens } = useAvailableSwapTokens({
     isSwap,
-    indexTokenAddress: isPosition ? toTokenState.tokenAddress : undefined,
+    indexTokenAddress: isPosition ? toTokenInput.tokenAddress : undefined,
   });
 
   const [leverageOption, setLeverageOption] = useLocalStorageSerializeKey<number | undefined>(
@@ -175,14 +176,14 @@ export function SwapBox(p: Props) {
   const [triggerPriceValue, setTriggerPriceValue] = useState<string>("");
   const triggerPrice = isTriggerPriceAllowed ? parseValue(triggerPriceValue, USD_DECIMALS) : undefined;
 
-  const entryPrice = triggerPrice?.gt(0) ? triggerPrice : toTokenState.price;
-  const markPrice = toTokenState.price;
+  const entryPrice = triggerPrice?.gt(0) ? triggerPrice : toTokenInput.price;
+  const markPrice = toTokenInput.price;
 
   const triggerPricePrefix = getTriggerPricePrefix();
 
   const sizeDeltaUsd =
-    toTokenState.token && entryPrice
-      ? convertToUsd(toTokenState.tokenAmount, toTokenState.token?.decimals, entryPrice)
+    toTokenInput.token && entryPrice
+      ? convertToUsd(toTokenInput.tokenAmount, toTokenInput.token?.decimals, entryPrice)
       : BigNumber.from(0);
 
   const positionKey = getPositionKey(
@@ -196,25 +197,16 @@ export function SwapBox(p: Props) {
 
   const swapRatio = useSwapTriggerRatioState({
     isAllowed: isSwapTriggerRatioAllowed,
-    fromTokenPrice: fromTokenState.price,
-    toTokenPrice: toTokenState.price,
+    fromTokenPrice: fromTokenInput.price,
+    toTokenPrice: toTokenInput.price,
   });
 
-  // const swapRoute = useSwapPath({
-  //   isSwap,
-  //   fromToken: fromTokenState.tokenAddress,
-  //   toToken: isSwap ? toTokenState.tokenAddress : undefined,
-  //   collateralToken: isPosition ? collateralTokenAddress : undefined,
-  //   indexToken: isPosition ? toTokenState.tokenAddress : undefined,
-  //   amountUsd: isPosition ? fromTokenState.usdAmount : toTokenState.usdAmount,
-  // });
-
   const swapRoute = useSwapRoute({
-    initialColltaralAddress: fromTokenState.tokenAddress,
-    initialCollateralAmount: fromTokenState.tokenAmount,
-    targetCollateralAddress: isSwap ? toTokenState.tokenAddress : collateralTokenAddress,
-    indexTokenAddress: isPosition ? toTokenState.tokenAddress : undefined,
-    sizeDeltaUsd: isPosition ? toTokenState.usdAmount : undefined,
+    initialColltaralAddress: fromTokenInput.tokenAddress,
+    initialCollateralAmount: fromTokenInput.tokenAmount,
+    targetCollateralAddress: isSwap ? toTokenInput.tokenAddress : collateralTokenAddress,
+    indexTokenAddress: isPosition ? toTokenInput.tokenAddress : undefined,
+    sizeDeltaUsd: isPosition ? toTokenInput.usdAmount : undefined,
     isLong: isPosition ? isLong : undefined,
   });
 
@@ -260,7 +252,7 @@ export function SwapBox(p: Props) {
         sizeDeltaUsd,
         pnl: existingPosition?.pnl,
       })
-    : fromTokenState.usdAmount?.add(existingPosition?.collateralUsd || BigNumber.from(0));
+    : fromTokenInput.usdAmount?.add(existingPosition?.collateralUsd || BigNumber.from(0));
 
   const collateralOutAmount = isStop
     ? getCollateralOutForDecreaseOrder({
@@ -322,10 +314,10 @@ export function SwapBox(p: Props) {
       operationType: operationTab!,
       mode: modeTab!,
       tokensData,
-      markPrice: toTokenState.price,
-      fromTokenAddress: fromTokenState.tokenAddress,
-      toTokenAddress: toTokenState.tokenAddress,
-      fromTokenAmount: fromTokenState.tokenAmount,
+      markPrice: toTokenInput.price,
+      fromTokenAddress: fromTokenInput.tokenAddress,
+      toTokenAddress: toTokenInput.tokenAddress,
+      fromTokenAmount: fromTokenInput.tokenAmount,
       swapPath: swapRoute?.swapPath,
       isHighPriceImpact: fees.isHighPriceImpact,
       isHighPriceImpactAccepted: fees.isHighPriceImpactAccepted,
@@ -341,7 +333,7 @@ export function SwapBox(p: Props) {
       };
     }
 
-    let text = `${tradeTypeLabels[operationTab!]} ${toTokenState.token?.symbol}`;
+    let text = `${tradeTypeLabels[operationTab!]} ${toTokenInput.token?.symbol}`;
 
     if (isStop) {
       text = `Create Trigger order`;
@@ -354,20 +346,20 @@ export function SwapBox(p: Props) {
   }
 
   function onSwitchTokens() {
-    const fromToken = fromTokenState.tokenAddress;
-    const toToken = toTokenState.tokenAddress;
+    const fromToken = fromTokenInput.tokenAddress;
+    const toToken = toTokenInput.tokenAddress;
 
-    fromTokenState.setTokenAddress(toToken);
-    fromTokenState.setInputValue(toTokenState.inputValue || "");
+    fromTokenInput.setTokenAddress(toToken);
+    fromTokenInput.setInputValue(toTokenInput.inputValue || "");
 
-    toTokenState.setTokenAddress(fromToken);
-    toTokenState.setInputValue(fromTokenState.inputValue || "");
+    toTokenInput.setTokenAddress(fromToken);
+    toTokenInput.setInputValue(fromTokenInput.inputValue || "");
 
     setFocusedInput((old) => (old === FocusedInput.From ? FocusedInput.To : FocusedInput.From));
   }
 
   function onSelectToToken(tokenAddress: string) {
-    toTokenState.setTokenAddress(tokenAddress);
+    toTokenInput.setTokenAddress(tokenAddress);
 
     if (isPosition && collateralTokenAddress) {
       const indexAddress = convertTokenAddress(chainId, tokenAddress, "wrapped");
@@ -387,16 +379,16 @@ export function SwapBox(p: Props) {
   useEffect(
     // TODO: fees
     function syncInputValuesEff() {
-      if (!fromTokenState.token || !toTokenState.token || !toTokenState.price || !fromTokenState.price) return;
+      if (!fromTokenInput.token || !toTokenInput.token || !toTokenInput.price || !fromTokenInput.price) return;
 
       if (focusedInput === FocusedInput.From) {
         // Set toToken value
         const toAmount = getNextTokenAmount({
-          fromToken: fromTokenState.token,
-          fromTokenAmount: fromTokenState.tokenAmount,
-          fromTokenPrice: fromTokenState.price,
-          toToken: toTokenState.token,
-          toTokenPrice: toTokenState.price,
+          fromToken: fromTokenInput.token,
+          fromTokenAmount: fromTokenInput.tokenAmount,
+          fromTokenPrice: fromTokenInput.price,
+          toToken: toTokenInput.token,
+          toTokenPrice: toTokenInput.price,
           triggerPrice,
           isInvertedTriggerPrice: false,
           swapTriggerRatio: swapRatio?.ratio,
@@ -405,18 +397,18 @@ export function SwapBox(p: Props) {
           isInvertedLeverage: false,
         });
 
-        toTokenState.setValueByTokenAmount(toAmount);
+        toTokenInput.setValueByTokenAmount(toAmount);
         return;
       }
 
       if (focusedInput === FocusedInput.To) {
         // Set fromToken value
         const fromAmount = getNextTokenAmount({
-          fromToken: toTokenState.token,
-          fromTokenAmount: toTokenState.tokenAmount,
-          fromTokenPrice: toTokenState.price,
-          toToken: fromTokenState.token,
-          toTokenPrice: fromTokenState.price,
+          fromToken: toTokenInput.token,
+          fromTokenAmount: toTokenInput.tokenAmount,
+          fromTokenPrice: toTokenInput.price,
+          toToken: fromTokenInput.token,
+          toTokenPrice: fromTokenInput.price,
           triggerPrice,
           isInvertedTriggerPrice: true,
           swapTriggerRatio: swapRatio?.ratio,
@@ -425,17 +417,17 @@ export function SwapBox(p: Props) {
           isInvertedLeverage: true,
         });
 
-        fromTokenState.setValueByTokenAmount(fromAmount);
+        fromTokenInput.setValueByTokenAmount(fromAmount);
       }
     },
     [
       focusedInput,
-      fromTokenState,
+      fromTokenInput,
       leverageMultiplier,
       swapRatio,
       swapRatio?.biggestSide,
       swapRatio?.ratio,
-      toTokenState,
+      toTokenInput,
       triggerPrice,
     ]
   );
@@ -451,43 +443,43 @@ export function SwapBox(p: Props) {
 
   useEffect(
     function updateTokenInputs() {
-      if (isPosition && selectedMarket && toTokenState.tokenAddress) {
-        const convetedIndexAddress = convertTokenAddress(chainId, toTokenState.tokenAddress, "wrapped");
+      if (isPosition && selectedMarket && toTokenInput.tokenAddress) {
+        const convetedIndexAddress = convertTokenAddress(chainId, toTokenInput.tokenAddress, "wrapped");
 
         if (selectedMarket.indexTokenAddress !== convetedIndexAddress) {
-          toTokenState.setTokenAddress(convertTokenAddress(chainId, selectedMarket.indexTokenAddress, "native"));
+          toTokenInput.setTokenAddress(convertTokenAddress(chainId, selectedMarket.indexTokenAddress, "native"));
         }
       }
 
-      if (fromTokenState.tokenAddress !== savedFromToken) {
-        setSavedFromToken(fromTokenState.tokenAddress);
+      if (fromTokenInput.tokenAddress !== savedFromToken) {
+        setSavedFromToken(fromTokenInput.tokenAddress);
       }
 
-      if (toTokenState.tokenAddress !== savedToToken) {
-        setSavedToToken(toTokenState.tokenAddress);
+      if (toTokenInput.tokenAddress !== savedToToken) {
+        setSavedToToken(toTokenInput.tokenAddress);
       }
 
       if (
         availableFromTokens.length &&
-        !availableFromTokens.find((token) => token.address === fromTokenState.tokenAddress)
+        !availableFromTokens.find((token) => token.address === fromTokenInput.tokenAddress)
       ) {
-        fromTokenState.setTokenAddress(availableFromTokens[0].address);
+        fromTokenInput.setTokenAddress(availableFromTokens[0].address);
       }
 
-      if (availableToTokens.length && !availableToTokens.find((token) => token.address === toTokenState.tokenAddress)) {
-        toTokenState.setTokenAddress(availableToTokens[0].address);
+      if (availableToTokens.length && !availableToTokens.find((token) => token.address === toTokenInput.tokenAddress)) {
+        toTokenInput.setTokenAddress(availableToTokens[0].address);
       }
     },
     [
       availableFromTokens,
       availableToTokens,
-      fromTokenState,
+      fromTokenInput,
       nativeToken,
       savedFromToken,
       savedToToken,
       setSavedFromToken,
       setSavedToToken,
-      toTokenState,
+      toTokenInput,
       selectedMarket,
       isPosition,
       chainId,
@@ -496,14 +488,10 @@ export function SwapBox(p: Props) {
 
   useEffect(
     function updateMarket() {
-      if (swapRoute?.marketAddress && swapRoute.marketAddress !== p.selectedMarketAddress) {
-        onSelectMarketAddress(swapRoute.marketAddress);
-      }
-
-      if (!p.selectedMarketAddress && toTokenState.tokenAddress) {
+      if (!p.selectedMarketAddress && toTokenInput.tokenAddress) {
         const market = getMarketByTokens(
           marketsData,
-          convertTokenAddress(chainId, toTokenState.tokenAddress, "wrapped"),
+          convertTokenAddress(chainId, toTokenInput.tokenAddress, "wrapped"),
           collateralTokenAddress ? convertTokenAddress(chainId, collateralTokenAddress, "wrapped") : undefined
         );
 
@@ -518,8 +506,8 @@ export function SwapBox(p: Props) {
       marketsData,
       onSelectMarketAddress,
       p.selectedMarketAddress,
-      swapRoute?.marketAddress,
-      toTokenState.tokenAddress,
+      swapRoute?.positionMarketAddress,
+      toTokenInput.tokenAddress,
     ]
   );
 
@@ -551,7 +539,7 @@ export function SwapBox(p: Props) {
       p.selectedCollateralAddress,
       selectedMarket,
       setCollateralTokenAddress,
-      toTokenState.tokenAddress,
+      toTokenInput.tokenAddress,
     ]
   );
 
@@ -581,26 +569,26 @@ export function SwapBox(p: Props) {
             <>
               <BuyInputSection
                 topLeftLabel={t`Pay:`}
-                topLeftValue={formatUsd(fromTokenState.usdAmount)}
+                topLeftValue={formatUsd(fromTokenInput.usdAmount)}
                 topRightLabel={t`Balance:`}
-                topRightValue={formatTokenAmount(fromTokenState.balance, fromTokenState.token?.decimals)}
-                inputValue={fromTokenState.inputValue}
+                topRightValue={formatTokenAmount(fromTokenInput.balance, fromTokenInput.token?.decimals)}
+                inputValue={fromTokenInput.inputValue}
                 onInputValueChange={(e) => {
                   setFocusedInput(FocusedInput.From);
-                  fromTokenState.setInputValue(e.target.value);
+                  fromTokenInput.setInputValue(e.target.value);
                 }}
-                showMaxButton={fromTokenState.isNotMatchBalance}
+                showMaxButton={fromTokenInput.isNotMatchBalance}
                 onClickMax={() => {
                   setFocusedInput(FocusedInput.From);
-                  fromTokenState.setValueByTokenAmount(fromTokenState.balance);
+                  fromTokenInput.setValueByTokenAmount(fromTokenInput.balance);
                 }}
               >
-                {fromTokenState.tokenAddress && (
+                {fromTokenInput.tokenAddress && (
                   <TokenSelector
                     label={t`Pay`}
                     chainId={chainId}
-                    tokenAddress={fromTokenState.tokenAddress}
-                    onSelectToken={(token) => fromTokenState.setTokenAddress(token.address)}
+                    tokenAddress={fromTokenInput.tokenAddress}
+                    onSelectToken={(token) => fromTokenInput.setTokenAddress(token.address)}
                     tokens={availableFromTokens}
                     infoTokens={infoTokens}
                     className="GlpSwap-from-token"
@@ -622,21 +610,21 @@ export function SwapBox(p: Props) {
                 topRightLabel={operationTab === TradeType.Swap ? t`Balance:` : t`Leverage:`}
                 topRightValue={
                   operationTab === TradeType.Swap
-                    ? formatTokenAmount(toTokenState.balance, toTokenState.token?.decimals)
+                    ? formatTokenAmount(toTokenInput.balance, toTokenInput.token?.decimals)
                     : `${leverageOption?.toFixed(2)}x`
                 }
-                inputValue={toTokenState.inputValue}
+                inputValue={toTokenInput.inputValue}
                 onInputValueChange={(e) => {
                   setFocusedInput(FocusedInput.To);
-                  toTokenState.setInputValue(e.target.value);
+                  toTokenInput.setInputValue(e.target.value);
                 }}
                 showMaxButton={false}
               >
-                {toTokenState.tokenAddress && (
+                {toTokenInput.tokenAddress && (
                   <TokenSelector
                     label={operationTab === TradeType.Swap ? t`Receive:` : tradeTypeLabels[operationTab!]}
                     chainId={chainId}
-                    tokenAddress={toTokenState.tokenAddress}
+                    tokenAddress={toTokenInput.tokenAddress}
                     onSelectToken={(token) => onSelectToToken(token.address)}
                     tokens={availableToTokens}
                     infoTokens={infoTokens}
@@ -668,9 +656,9 @@ export function SwapBox(p: Props) {
             <BuyInputSection
               topLeftLabel={t`Price`}
               topRightLabel={t`Mark:`}
-              topRightValue={formatUsd(toTokenState.price)}
+              topRightValue={formatUsd(toTokenInput.price)}
               onClickTopRightLabel={() => {
-                setTriggerPriceValue(formatAmount(toTokenState.price, USD_DECIMALS, 2));
+                setTriggerPriceValue(formatAmount(toTokenInput.price, USD_DECIMALS, 2));
               }}
               inputValue={triggerPriceValue}
               onInputValueChange={(e) => {
@@ -694,8 +682,8 @@ export function SwapBox(p: Props) {
               }}
             >
               {swapRatio.biggestSide === "from"
-                ? `${toTokenState.token?.symbol} per ${fromTokenState.token?.symbol}`
-                : `${fromTokenState.token?.symbol} per ${toTokenState.token?.symbol}`}
+                ? `${toTokenInput.token?.symbol} per ${fromTokenInput.token?.symbol}`
+                : `${fromTokenInput.token?.symbol} per ${toTokenInput.token?.symbol}`}
             </BuyInputSection>
           )}
         </div>
@@ -736,7 +724,9 @@ export function SwapBox(p: Props) {
                       }}
                     />
                   ) : selectedMarket ? (
-                    `${getTokenData(tokensData, selectedMarket?.indexTokenAddress)?.symbol}/${selectedMarket?.perp}`
+                    `${getTokenData(tokensData, selectedMarket?.indexTokenAddress, "native")?.symbol}/${
+                      selectedMarket?.perp
+                    }`
                   ) : (
                     "..."
                   )
@@ -915,25 +905,31 @@ export function SwapBox(p: Props) {
       </div>
 
       <div className="SwapBox-section">
-        <MarketCard
-          isLong={isLong}
-          isSwap={isSwap}
-          marketAddress={p.selectedMarketAddress}
-          swapPath={swapRoute?.swapPath}
-          fromTokenAddress={fromTokenState.tokenAddress}
-          toTokenAddress={isPosition ? collateralTokenAddress : toTokenState.tokenAddress}
-          indexTokenAddress={toTokenState.tokenAddress}
-        />
+        {isSwap &&
+          fromTokenInput.tokenAddress &&
+          toTokenInput.tokenAddress &&
+          swapRoute.mostAbundantSwapMarketAddress && (
+            <SwapCard
+              fromTokenAddress={fromTokenInput.tokenAddress}
+              toTokenAddress={toTokenInput.tokenAddress}
+              swapPath={swapRoute.swapPath || []}
+              mostAbundantMarketAddress={swapRoute.mostAbundantSwapMarketAddress}
+            />
+          )}
+
+        {isPosition && (swapRoute.positionMarketAddress || p.selectedMarketAddress) && (
+          <MarketCard isLong={isLong} marketAddress={swapRoute.positionMarketAddress! || p.selectedMarketAddress!} />
+        )}
       </div>
 
       {isConfirming && (
         <ConfirmationBox
-          fromTokenAddress={fromTokenState.tokenAddress!}
-          fromTokenAmount={fromTokenState.tokenAmount}
-          fromTokenPrice={fromTokenState.price}
-          toTokenAddress={toTokenState.tokenAddress!}
-          toTokenAmount={toTokenState.tokenAmount}
-          toTokenPrice={toTokenState.price}
+          fromTokenAddress={fromTokenInput.tokenAddress!}
+          fromTokenAmount={fromTokenInput.tokenAmount}
+          fromTokenPrice={fromTokenInput.price}
+          toTokenAddress={toTokenInput.tokenAddress!}
+          toTokenAmount={toTokenInput.tokenAmount}
+          toTokenPrice={toTokenInput.price}
           collateralTokenAddress={collateralTokenAddress}
           selectedMarketAddress={p.selectedMarketAddress}
           collateralDeltaAmount={collateralDeltaAmount}
@@ -948,7 +944,7 @@ export function SwapBox(p: Props) {
           keepLeverage={keepLeverage}
           nextSizeUsd={nextSizeUsd}
           nextCollateralUsd={nextCollateralUsd}
-          acceptablePrice={toTokenState.price!}
+          acceptablePrice={toTokenInput.price!}
           closeSizeUsd={closeSizeUsd}
           sizeDeltaUsd={sizeDeltaUsd}
           collateralDeltaUsd={collateralDeltaUsd}
@@ -973,10 +969,10 @@ export function SwapBox(p: Props) {
       {isProcessing && (
         <OrderStatus
           orderType={isSwap ? OrderType.MarketSwap : OrderType.MarketIncrease}
-          marketAddress={swapRoute?.marketAddress}
-          initialCollateralAddress={isSwap ? fromTokenState.tokenAddress : undefined}
-          initialCollateralAmount={isSwap ? fromTokenState.tokenAmount : undefined}
-          toSwapTokenAddress={isSwap ? toTokenState.tokenAddress : undefined}
+          marketAddress={swapRoute?.positionMarketAddress}
+          initialCollateralAddress={isSwap ? fromTokenInput.tokenAddress : undefined}
+          initialCollateralAmount={isSwap ? fromTokenInput.tokenAmount : undefined}
+          toSwapTokenAddress={isSwap ? toTokenInput.tokenAddress : undefined}
           sizeDeltaUsd={sizeDeltaUsd}
           isLong={isSwap ? undefined : isLong}
           onClose={() => setIsProcessing(false)}

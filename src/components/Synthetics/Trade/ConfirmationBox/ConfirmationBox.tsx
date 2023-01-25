@@ -180,7 +180,7 @@ export function ConfirmationBox(p: Props) {
       if ([TradeMode.Market, TradeMode.Limit].includes(p.mode)) {
         if (!p.fromTokenAddress || !p.swapRoute || !p.fromTokenAmount || !p.toTokenAddress) return;
 
-        const { marketAddress, swapPath } = p.swapRoute;
+        const { positionMarketAddress: marketAddress, swapPath } = p.swapRoute;
 
         if (!marketAddress || !p.sizeDeltaUsd || !toToken?.prices || !swapPath) return;
 

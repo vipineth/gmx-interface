@@ -157,10 +157,10 @@ export function mockPoolsData(
       netPnlMax: expandDecimals(10000, USD_DECIMALS),
       netPnlMin: expandDecimals(10000, USD_DECIMALS),
 
-      pnlLongMax: expandDecimals(5000, USD_DECIMALS),
-      pnlLongMin: expandDecimals(5000, USD_DECIMALS),
-      pnlShortMax: expandDecimals(5000, USD_DECIMALS),
-      pnlShortMin: expandDecimals(5000, USD_DECIMALS),
+      // pnlLongMax: expandDecimals(5000, USD_DECIMALS),
+      // pnlLongMin: expandDecimals(5000, USD_DECIMALS),
+      // pnlShortMax: expandDecimals(5000, USD_DECIMALS),
+      // pnlShortMin: expandDecimals(5000, USD_DECIMALS),
 
       ...(overrides[key] || {}),
     };

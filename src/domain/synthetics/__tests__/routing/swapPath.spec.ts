@@ -120,10 +120,13 @@ describe("swapPath", () => {
     ];
     for (const { name, from, to, expected, feeOverrides } of tests) {
       it(`${name}: ${from} -> ${to}`, () => {
-        const mockEstimator: SwapEstimator = (e: Edge, amountIn: BigNumber) => {
-          const feeOverride = feeOverrides?.[e.marketAddress]?.[`${e.from}-${e.to}`];
+        const mockEstimator: SwapEstimator = (e: Edge, usdIn: BigNumber) => {
+          const fees = feeOverrides?.[e.marketAddress]?.[`${e.from}-${e.to}`] || BASE_FEE;
 
-          return amountIn.sub(feeOverride || BASE_FEE);
+          return {
+            usdOut: usdIn.sub(fees),
+            fees,
+          };
         };
 
         const result = findBestSwapPath(graph, from, to, BigNumber.from(5), mockEstimator);

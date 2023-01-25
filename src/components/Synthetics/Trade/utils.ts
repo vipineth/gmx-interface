@@ -2,7 +2,7 @@ import { t } from "@lingui/macro";
 import { HIGH_PRICE_IMPACT_BP } from "config/synthetics";
 import { NATIVE_TOKEN_ADDRESS, getWrappedToken } from "config/tokens";
 import { SwapPathItem } from "domain/synthetics/exchange";
-import { ExecutionFeeParams, PriceImpact, getExecutionFee, getPriceImpactUsd } from "domain/synthetics/fees";
+import { ExecutionFeeParams, PriceImpact, getExecutionFee } from "domain/synthetics/fees";
 import { getMarkets, getOpenInterest, useMarketsData } from "domain/synthetics/markets";
 import { useOpenInterestData } from "domain/synthetics/markets/useOpenInterestData";
 import {
