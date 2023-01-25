@@ -7,7 +7,6 @@ import Modal from "components/Modal/Modal";
 import { SubmitButton } from "components/SubmitButton/SubmitButton";
 import { getContract } from "config/contracts";
 import { useUserReferralCode } from "domain/referrals";
-import { SwapRoute } from "domain/synthetics/exchange";
 import {
   OrderType,
   createDecreaseOrderTxn,
@@ -31,6 +30,7 @@ import { useContractEvents } from "domain/synthetics/contractEvents";
 import { getMarket, useMarketsData } from "domain/synthetics/markets";
 import { AggregatedPositionData, formatLeverage, formatPnl } from "domain/synthetics/positions";
 import "./ConfirmationBox.scss";
+import { SwapRoute } from "domain/synthetics/routing";
 
 type Props = {
   operationType: TradeType;
@@ -180,13 +180,13 @@ export function ConfirmationBox(p: Props) {
       if ([TradeMode.Market, TradeMode.Limit].includes(p.mode)) {
         if (!p.fromTokenAddress || !p.swapRoute || !p.fromTokenAmount || !p.toTokenAddress) return;
 
-        const { market, swapPath } = p.swapRoute;
+        const { marketAddress, swapPath } = p.swapRoute;
 
-        if (!market || !p.sizeDeltaUsd || !toToken?.prices) return;
+        if (!marketAddress || !p.sizeDeltaUsd || !toToken?.prices || !swapPath) return;
 
         createIncreaseOrderTxn(chainId, library, {
           account,
-          market,
+          market: marketAddress,
           initialCollateralAddress: p.fromTokenAddress,
           initialCollateralAmount: p.fromTokenAmount,
           targetCollateralAddress: p.collateralTokenAddress,
@@ -245,6 +245,8 @@ export function ConfirmationBox(p: Props) {
       const orderType = p.mode === TradeMode.Limit ? OrderType.LimitSwap : OrderType.MarketSwap;
 
       const { swapPath } = p.swapRoute;
+
+      if (!swapPath) return;
 
       createSwapOrderTxn(chainId, library, {
         account,

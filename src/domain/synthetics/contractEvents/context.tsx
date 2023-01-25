@@ -269,13 +269,13 @@ export function ContractEventsProvider({ children }: { children: ReactNode }) {
 
   if (isDevelopment()) {
     // eslint-disable-next-line no-console
-    console.debug("events", {
-      orderStatuses,
-      depositStatuses,
-      withdrawalStatuses,
-      positionsUpdates,
-      pendingPositionsUpdates,
-    });
+    // console.debug("events", {
+    //   orderStatuses,
+    //   depositStatuses,
+    //   withdrawalStatuses,
+    //   positionsUpdates,
+    //   pendingPositionsUpdates,
+    // });
   }
 
   const contextState: ContractEventsContextType = useMemo(() => {

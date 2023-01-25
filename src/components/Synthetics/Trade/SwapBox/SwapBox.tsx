@@ -19,7 +19,6 @@ import {
 } from "config/localStorage";
 import { NATIVE_TOKEN_ADDRESS, convertTokenAddress } from "config/tokens";
 import { useTokenInputState } from "domain/synthetics/exchange";
-import { useSwapPath } from "domain/synthetics/exchange/useSwapPath";
 import { convertToTokenAmount, convertToUsd, getTokenData, useAvailableTokensData } from "domain/synthetics/tokens";
 import { BigNumber } from "ethers";
 
@@ -67,6 +66,7 @@ import {
 import { useWeb3React } from "@web3-react/core";
 import { ValueTransition } from "components/ValueTransition/ValueTransition";
 import "./SwapBox.scss";
+import { useSwapRoute } from "domain/synthetics/routing/useSwapRoute";
 
 enum FocusedInput {
   From = "From",
@@ -200,22 +200,31 @@ export function SwapBox(p: Props) {
     toTokenPrice: toTokenState.price,
   });
 
-  const swapRoute = useSwapPath({
-    isSwap,
-    fromToken: fromTokenState.tokenAddress,
-    toToken: isSwap ? toTokenState.tokenAddress : undefined,
-    collateralToken: isPosition ? collateralTokenAddress : undefined,
-    indexToken: isPosition ? toTokenState.tokenAddress : undefined,
-    amountUsd: isPosition ? fromTokenState.usdAmount : toTokenState.usdAmount,
+  // const swapRoute = useSwapPath({
+  //   isSwap,
+  //   fromToken: fromTokenState.tokenAddress,
+  //   toToken: isSwap ? toTokenState.tokenAddress : undefined,
+  //   collateralToken: isPosition ? collateralTokenAddress : undefined,
+  //   indexToken: isPosition ? toTokenState.tokenAddress : undefined,
+  //   amountUsd: isPosition ? fromTokenState.usdAmount : toTokenState.usdAmount,
+  // });
+
+  const swapRoute = useSwapRoute({
+    initialColltaralAddress: fromTokenState.tokenAddress,
+    initialCollateralAmount: fromTokenState.tokenAmount,
+    targetCollateralAddress: isSwap ? toTokenState.tokenAddress : collateralTokenAddress,
+    indexTokenAddress: isPosition ? toTokenState.tokenAddress : undefined,
+    sizeDeltaUsd: isPosition ? toTokenState.usdAmount : undefined,
+    isLong: isPosition ? isLong : undefined,
   });
 
   const fees = useFeesState({
     isSwap,
     isLong,
-    marketAddress: swapRoute?.market,
+    // marketAddress: swapRoute?.market,
     sizeDeltaUsd: isStop ? closeSizeUsd : sizeDeltaUsd,
-    swapPath: !isStop ? swapRoute?.fullSwapPath : undefined,
-    swapFeeUsd: !isStop ? swapRoute?.swapFeesUsd : undefined,
+    // swapPath: !isStop ? swapRoute?.fullSwapPath : undefined,
+    // swapFeeUsd: !isStop ? swapRoute?.swapFeesUsd : undefined,
   });
 
   const isClosing = existingPosition?.sizeInUsd.sub(closeSizeUsd).lt(DUST_USD);
@@ -487,8 +496,8 @@ export function SwapBox(p: Props) {
 
   useEffect(
     function updateMarket() {
-      if (swapRoute?.market && swapRoute.market !== p.selectedMarketAddress) {
-        onSelectMarketAddress(swapRoute.market);
+      if (swapRoute?.marketAddress && swapRoute.marketAddress !== p.selectedMarketAddress) {
+        onSelectMarketAddress(swapRoute.marketAddress);
       }
 
       if (!p.selectedMarketAddress && toTokenState.tokenAddress) {
@@ -509,7 +518,7 @@ export function SwapBox(p: Props) {
       marketsData,
       onSelectMarketAddress,
       p.selectedMarketAddress,
-      swapRoute?.market,
+      swapRoute?.marketAddress,
       toTokenState.tokenAddress,
     ]
   );
@@ -964,7 +973,7 @@ export function SwapBox(p: Props) {
       {isProcessing && (
         <OrderStatus
           orderType={isSwap ? OrderType.MarketSwap : OrderType.MarketIncrease}
-          marketAddress={swapRoute?.market}
+          marketAddress={swapRoute?.marketAddress}
           initialCollateralAddress={isSwap ? fromTokenState.tokenAddress : undefined}
           initialCollateralAmount={isSwap ? fromTokenState.tokenAmount : undefined}
           toSwapTokenAddress={isSwap ? toTokenState.tokenAddress : undefined}

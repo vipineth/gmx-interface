@@ -7,7 +7,7 @@ import {
   getOpenInterest,
   getPoolUsd,
 } from "domain/synthetics/markets";
-import { TokensData, convertToContractPrice, convertToUsd, getMidPrice, getTokenData } from "domain/synthetics/tokens";
+import { TokensData, convertToTokenAmount, convertToUsd, getMidPrice, getTokenData } from "domain/synthetics/tokens";
 import { BigNumber } from "ethers";
 import { BASIS_POINTS_DIVISOR } from "lib/legacy";
 import { applyFactor, bigNumberify, expandDecimals, roundUpDivision } from "lib/numbers";
@@ -29,7 +29,6 @@ export function applySwapImpactWithCap(
   if (!market || !priceImpact || !token?.prices || !pools) return undefined;
 
   let price = priceImpact.impactDeltaUsd.gt(0) ? token.prices.maxPrice : token.prices.minPrice;
-  price = convertToContractPrice(price, token.decimals);
 
   if (!price.gt(0)) return undefined;
 
@@ -37,7 +36,7 @@ export function applySwapImpactWithCap(
 
   if (priceImpact.impactDeltaUsd.gt(0)) {
     // round positive impactAmount down, this will be deducted from the swap impact pool for the user
-    impactDeltaAmount = priceImpact.impactDeltaUsd.div(price);
+    impactDeltaAmount = convertToTokenAmount(priceImpact.impactDeltaUsd, token.decimals, price)!;
 
     const isLongCollateral = market.longTokenAddress === tokenAddress;
 
@@ -48,7 +47,7 @@ export function applySwapImpactWithCap(
     }
   } else {
     // round negative impactAmount up, this will be deducted from the user
-    impactDeltaAmount = roundUpDivision(priceImpact.impactDeltaUsd, price);
+    impactDeltaAmount = roundUpDivision(priceImpact.impactDeltaUsd.mul(expandDecimals(1, token.decimals)), price);
   }
 
   return impactDeltaAmount;
@@ -150,7 +149,6 @@ export function getPriceImpactForSwap(
   feesConfigs: MarketsFeesConfigsData,
   marketAddress: string | undefined,
   fromTokenAddress: string | undefined,
-  toTokenAddress: string | undefined,
   fromDeltaAmount: BigNumber | undefined,
   toDeltaAmount: BigNumber | undefined
 ) {

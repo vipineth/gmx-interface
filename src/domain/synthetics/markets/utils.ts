@@ -158,11 +158,11 @@ export function getReservedUsd(
   const openInterest = getOpenInterest(openInterestData, marketAddress);
   const indexToken = getTokenData(tokensData, market?.indexTokenAddress);
 
-  const openInterestValue = isLong ? openInterest?.longInterestInTokens : openInterest?.shortInterestInTokens;
+  const openInterestInTokens = isLong ? openInterest?.longInterestInTokens : openInterest?.shortInterestInTokens;
 
   const price = isLong ? indexToken?.prices?.maxPrice : indexToken?.prices?.minPrice;
 
-  return convertToUsd(openInterestValue, indexToken?.decimals, price);
+  return convertToUsd(openInterestInTokens, indexToken?.decimals, price);
 }
 
 export function getMaxReservedUsd(
