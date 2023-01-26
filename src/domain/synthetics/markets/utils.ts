@@ -64,13 +64,13 @@ export function getMarketName(
 
   if (!market || !indexToken || !longToken || !shortToken) {
     if (fallbackToPlaceholder) {
-      return `${gmText} ---/--- [-------]`;
+      return `${gmText}---/--- [-------]`;
     }
 
     return undefined;
   }
 
-  return `${gmText} ${indexToken.symbol}/${market.perp} [${longToken.symbol}-${shortToken.symbol}]`;
+  return `${gmText}${indexToken.symbol}/${market.perp} [${longToken.symbol}-${shortToken.symbol}]`;
 }
 
 export function getOppositeCollateral(market?: Market, collateralToken?: string) {

@@ -9,34 +9,33 @@ import {
 } from "domain/synthetics/markets";
 import { TokensData, convertToTokenAmount, convertToUsd, getMidPrice, getTokenData } from "domain/synthetics/tokens";
 import { BigNumber } from "ethers";
-import { BASIS_POINTS_DIVISOR } from "lib/legacy";
 import { applyFactor, bigNumberify, expandDecimals, roundUpDivision } from "lib/numbers";
 import { getMarketFeesConfig } from ".";
-import { MarketsFeesConfigsData, PriceImpact } from "../types";
+import { MarketsFeesConfigsData } from "../types";
 
 export function applySwapImpactWithCap(
   marketsData: MarketsData,
   poolsData: MarketsPoolsData,
   tokensData: TokensData,
-  marketAddress: string | undefined,
-  tokenAddress: string | undefined,
-  priceImpact: PriceImpact | undefined
+  marketAddress?: string,
+  tokenAddress?: string,
+  priceImpactDeltaUsd?: BigNumber
 ) {
   const market = getMarket(marketsData, marketAddress);
   const token = getTokenData(tokensData, tokenAddress);
   const pools = getMarketPools(poolsData, marketAddress);
 
-  if (!market || !priceImpact || !token?.prices || !pools) return undefined;
+  if (!market || !priceImpactDeltaUsd || !token?.prices || !pools) return undefined;
 
-  let price = priceImpact.impactDeltaUsd.gt(0) ? token.prices.maxPrice : token.prices.minPrice;
+  let price = priceImpactDeltaUsd.gt(0) ? token.prices.maxPrice : token.prices.minPrice;
 
   if (!price.gt(0)) return undefined;
 
   let impactDeltaAmount: BigNumber;
 
-  if (priceImpact.impactDeltaUsd.gt(0)) {
+  if (priceImpactDeltaUsd.gt(0)) {
     // round positive impactAmount down, this will be deducted from the swap impact pool for the user
-    impactDeltaAmount = convertToTokenAmount(priceImpact.impactDeltaUsd, token.decimals, price)!;
+    impactDeltaAmount = convertToTokenAmount(priceImpactDeltaUsd, token.decimals, price)!;
 
     const isLongCollateral = market.longTokenAddress === tokenAddress;
 
@@ -47,7 +46,7 @@ export function applySwapImpactWithCap(
     }
   } else {
     // round negative impactAmount up, this will be deducted from the user
-    impactDeltaAmount = roundUpDivision(priceImpact.impactDeltaUsd.mul(expandDecimals(1, token.decimals)), price);
+    impactDeltaAmount = roundUpDivision(priceImpactDeltaUsd.mul(expandDecimals(1, token.decimals)), price);
   }
 
   return impactDeltaAmount;
@@ -58,12 +57,12 @@ export function getCappedPositionImpactUsd(
   poolsData: MarketsPoolsData,
   feeConfigs: MarketsFeesConfigsData,
   tokensData: TokensData,
-  marketAddress: string | undefined,
-  priceImpact: PriceImpact | undefined,
-  sizeDeltaUsd: BigNumber | undefined
+  marketAddress?: string,
+  priceImpactDeltaUsd?: BigNumber,
+  sizeDeltaUsd?: BigNumber
 ) {
-  if (priceImpact && priceImpact.impactDeltaUsd.lt(0)) {
-    return priceImpact.impactDeltaUsd;
+  if (priceImpactDeltaUsd && priceImpactDeltaUsd.lt(0)) {
+    return priceImpactDeltaUsd;
   }
 
   const market = getMarket(marketsData, marketAddress);
@@ -84,14 +83,14 @@ export function getCappedPositionImpactUsd(
     !pools ||
     !feesConfig ||
     !indexToken?.prices ||
-    !priceImpact ||
+    !priceImpactDeltaUsd ||
     !maxPriceImpactUsdBasedOnImpactPool ||
     !sizeDeltaUsd
   ) {
     return undefined;
   }
 
-  let cappedImpactUsd = priceImpact.impactDeltaUsd;
+  let cappedImpactUsd = priceImpactDeltaUsd;
 
   if (cappedImpactUsd.gt(maxPriceImpactUsdBasedOnImpactPool)) {
     cappedImpactUsd = maxPriceImpactUsdBasedOnImpactPool;
@@ -207,7 +206,7 @@ export function getPriceImpactUsd(p: {
   factorPositive: BigNumber | undefined;
   factorNegative: BigNumber | undefined;
   exponentFactor: BigNumber | undefined;
-}): PriceImpact | undefined {
+}): BigNumber | undefined {
   if (
     !p.currentLongUsd ||
     !p.currentShortUsd ||
@@ -254,16 +253,7 @@ export function getPriceImpactUsd(p: {
 
   if (!impactUsd) return undefined;
 
-  const totalTradeSize = p.longDeltaUsd.abs().add(p.shortDeltaUsd.abs());
-
-  const basisPoints = totalTradeSize.gt(0)
-    ? impactUsd.abs().mul(BASIS_POINTS_DIVISOR).div(totalTradeSize)
-    : BigNumber.from(0);
-
-  return {
-    impactDeltaUsd: impactUsd,
-    basisPoints,
-  };
+  return impactUsd;
 }
 
 /**

@@ -1,10 +1,6 @@
 import { Token } from "domain/tokens";
 import { BigNumber } from "ethers";
-
-export type PriceImpact = {
-  impactDeltaUsd: BigNumber;
-  basisPoints: BigNumber;
-};
+import { TokenData } from "../tokens";
 
 export type ExecutionFeeParams = {
   feeUsd?: BigNumber;
@@ -12,64 +8,45 @@ export type ExecutionFeeParams = {
   feeToken: Token;
 };
 
-export type ExecutionFees = {
+export type ExecutionFee = {
   feeUsd: BigNumber;
-  feeTokenAmount: BigNumber;
-  feeToken: Token;
+  feeAmount: BigNumber;
+  feeToken: TokenData;
 };
 
 export type SwapStepFees = {
-  tokenInAddress: string;
   marketAddress: string;
+  tokenInAddress: string;
   tokenOutAddress: string;
   swapFeeAmount: BigNumber;
   swapFeeUsd: BigNumber;
-  cappedImpactDeltaUsd: BigNumber;
+  priceImpactDeltaUsd: BigNumber;
   totalFeeUsd: BigNumber;
   amountInAfterFees: BigNumber;
   amountOut: BigNumber;
+  usdOut: BigNumber;
+};
+
+export type FeeItem = {
+  deltaUsd: BigNumber;
+  bps: BigNumber;
+};
+
+export type SwapFeeItem = FeeItem & {
+  marketAddress: string;
+  tokenInAddress: string;
+  tokenOutAddress: string;
 };
 
 export type TotalSwapFees = {
-  swaps: SwapStepFees[];
-  totalPriceImpact: PriceImpact;
-  totalSwapFeeUsd: BigNumber;
-  totalFeeUsd: BigNumber;
+  swapSteps: SwapStepFees[];
+  swapFees: SwapFeeItem[];
+  totalPriceImpact: FeeItem;
+  totalSwapFee: FeeItem;
+  totalFee: FeeItem;
   tokenInAddress: string;
   tokenOutAddress: string;
-  amountOut: BigNumber;
-};
-
-export type SwapOrderFees = {
-  swaps: SwapStepFees[];
-  swapOrderFeeAmount: BigNumber;
-  totalSwapImpact: PriceImpact;
-  totalFeeAmount: BigNumber;
-  totalFeeUsd: BigNumber;
-  totalSwapFeeAmount: BigNumber;
-  amountAfterFees: BigNumber;
-  amountBasisPoints: BigNumber;
-};
-
-export type PositionOrderFees = {
-  swaps: SwapStepFees[];
-  totalSwapImpact: PriceImpact;
-  positionFeeAmount: BigNumber;
-  totalFeeUsd: BigNumber;
-  totalFeeAmount: BigNumber;
-  positionImpact: PriceImpact;
-  deductedBorrowingFeeAmount: BigNumber;
-  deductedBorrowingFeeUsd: BigNumber;
-  deductedFundingFeeAmount: BigNumber;
-  deductedFundingFeeUsd: BigNumber;
-  deductedPnl: BigNumber;
-  collateralAmountAfterFees: BigNumber;
-  collateralAmountBasisPoints: BigNumber;
-};
-
-export type OrderCreationFee = {
-  feeAmount: BigNumber;
-  feeUsd: BigNumber;
+  usdOut: BigNumber;
 };
 
 export type GasLimitsConfig = {

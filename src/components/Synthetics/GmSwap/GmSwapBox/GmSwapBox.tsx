@@ -11,13 +11,13 @@ import { getSubmitError, Mode, modeLabels, Operation, operationLabels, PoolDelta
 
 import { SubmitButton } from "components/SubmitButton/SubmitButton";
 import TokenSelector from "components/TokenSelector/TokenSelector";
-import { getMarket, getMarketName, getPoolUsd, getTokenPoolType } from "domain/synthetics/markets/utils";
+import { getMarket, getMarketName, getTokenPoolType } from "domain/synthetics/markets/utils";
 import { adaptToInfoTokens } from "domain/synthetics/tokens";
 import { BigNumber } from "ethers";
 import { IoMdSwap } from "react-icons/io";
 
 import { useTokenInputState } from "domain/synthetics/exchange";
-import { getExecutionFee, getPriceImpactUsd } from "domain/synthetics/fees";
+import { getExecutionFee } from "domain/synthetics/fees";
 import { useMarketsData, useMarketsPoolsData, useMarketTokensData } from "domain/synthetics/markets";
 import { GmConfirmationBox } from "../GmConfirmationBox/GmConfirmationBox";
 
@@ -26,9 +26,9 @@ import { GmFees } from "components/Synthetics/GmSwap/GmFees/GmFees";
 import { HIGH_PRICE_IMPACT_BP } from "config/synthetics";
 import { useAvailableTokensData } from "domain/synthetics/tokens";
 
+import { Dropdown, DropdownOption } from "components/Dropdown/Dropdown";
 import { formatTokenAmount, formatUsd } from "lib/numbers";
 import { GmOrderStatus } from "../GmOrderStatus/GmOrderStatus";
-import { Dropdown, DropdownOption } from "components/Dropdown/Dropdown";
 
 import "./GmSwapBox.scss";
 
@@ -61,7 +61,7 @@ export function GmSwapBox(p: Props) {
   const { marketsData } = useMarketsData(chainId);
   const { marketTokensData } = useMarketTokensData(chainId);
   const { poolsData } = useMarketsPoolsData(chainId);
-  const priceImpactConfigsData = {} as any;
+  // const priceImpactConfigsData = {} as any;
 
   const marketsOptions: DropdownOption[] = Object.values(marketsData).map((market) => ({
     label: getMarketName(marketsData, tokensData, market.marketTokenAddress, true, true)!,
@@ -99,23 +99,23 @@ export function GmSwapBox(p: Props) {
   const longDelta = getDeltaByPoolType(MarketPoolType.Long);
   const shortDelta = getDeltaByPoolType(MarketPoolType.Short);
 
-  const currentLongUsd = getPoolUsd(
-    marketsData,
-    poolsData,
-    tokensData,
-    market?.marketTokenAddress,
-    market?.longTokenAddress,
-    "midPrice"
-  );
+  // const currentLongUsd = getPoolUsd(
+  //   marketsData,
+  //   poolsData,
+  //   tokensData,
+  //   market?.marketTokenAddress,
+  //   market?.longTokenAddress,
+  //   "midPrice"
+  // );
 
-  const currentShortUsd = getPoolUsd(
-    marketsData,
-    poolsData,
-    tokensData,
-    market?.marketTokenAddress,
-    market?.shortTokenAddress,
-    "midPrice"
-  );
+  // const currentShortUsd = getPoolUsd(
+  //   marketsData,
+  //   poolsData,
+  //   tokensData,
+  //   market?.marketTokenAddress,
+  //   market?.shortTokenAddress,
+  //   "midPrice"
+  // );
 
   const priceImpact = undefined as any;
 

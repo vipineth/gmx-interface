@@ -63,7 +63,6 @@ export function ContractEventsProvider({ children }: { children: ReactNode }) {
         orderType: OrderType,
         txnParams: EventTxnParams
       ) => {
-        // eslint-disable-next-line no-console
         if (account !== currentAccount) return;
 
         const positionKey = getPositionKey(account, market, collateralToken, isLong);

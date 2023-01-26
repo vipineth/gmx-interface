@@ -1,10 +1,8 @@
 import { t } from "@lingui/macro";
-import { HIGH_PRICE_IMPACT_BP } from "config/synthetics";
 import { NATIVE_TOKEN_ADDRESS, getWrappedToken } from "config/tokens";
-import { SwapPathItem } from "domain/synthetics/exchange";
-import { ExecutionFeeParams, PriceImpact, getExecutionFee } from "domain/synthetics/fees";
-import { getMarkets, getOpenInterest, useMarketsData } from "domain/synthetics/markets";
-import { useOpenInterestData } from "domain/synthetics/markets/useOpenInterestData";
+
+import { ExecutionFeeParams } from "domain/synthetics/fees";
+import { getMarkets, useMarketsData } from "domain/synthetics/markets";
 import {
   TokensData,
   adaptToInfoTokens,
@@ -298,81 +296,10 @@ export function useAvailableSwapTokens(p: { indexTokenAddress?: string; isSwap: 
 export type Fees = {
   executionFee?: ExecutionFeeParams;
   totalFeeUsd: BigNumber;
-  positionPriceImpact?: PriceImpact;
+  positionPriceImpact?: any;
   isHighPriceImpactAccepted?: boolean;
   isHighPriceImpact?: boolean;
   setIsHighPriceImpactAccepted?: (v: boolean) => void;
-  swapPath?: SwapPathItem[];
+  swapPath?: any[];
   swapFeeUsd?: BigNumber;
 };
-
-export function useFeesState(p: {
-  isSwap: boolean;
-  marketAddress?: string;
-  isLong: boolean;
-  sizeDeltaUsd?: BigNumber;
-  swapPath?: SwapPathItem[];
-  swapFeeUsd?: BigNumber;
-}): Fees {
-  const { chainId } = useChainId();
-
-  const [isHighPriceImpactAccepted, setIsHighPriceImpactAccepted] = useState(false);
-
-  const { tokensData } = useAvailableTokensData(chainId);
-  const { openInterestData } = useOpenInterestData(chainId);
-  const priceImpactConfigs = {} as any;
-
-  const executionFee = getExecutionFee(tokensData);
-
-  if (p.isSwap) {
-    const totalFeeUsd = BigNumber.from(0)
-      .sub(executionFee?.feeUsd || BigNumber.from(0))
-      .add(p.swapFeeUsd || BigNumber.from(0));
-
-    // todo: swap fees
-    return {
-      executionFee,
-      totalFeeUsd,
-      swapPath: p.swapPath,
-      swapFeeUsd: p.swapFeeUsd,
-    };
-  }
-
-  const openInterest = getOpenInterest(openInterestData, p.marketAddress);
-
-  const currentLong = openInterest?.longInterestUsd;
-  const currentShort = openInterest?.shortInterestUsd;
-
-  const longDeltaUsd = p.isLong ? p.sizeDeltaUsd : BigNumber.from(0);
-  const shortDeltaUsd = p.isLong ? BigNumber.from(0) : p.sizeDeltaUsd;
-
-  const positionPriceImpact = undefined as any;
-
-  // const positionPriceImpact = getPriceImpact(
-  //   priceImpactConfigs,
-  //   p.marketAddress,
-  //   currentLong,
-  //   currentShort,
-  //   longDeltaUsd,
-  //   shortDeltaUsd
-  // );
-
-  const totalFeeUsd = BigNumber.from(0)
-    .add(p.swapFeeUsd || BigNumber.from(0))
-    .sub(executionFee?.feeUsd || BigNumber.from(0))
-    .add(positionPriceImpact?.impactUsd || BigNumber.from(0));
-
-  const isHighPriceImpact =
-    positionPriceImpact?.impactUsd.lt(0) && positionPriceImpact?.basisPoints.gte(HIGH_PRICE_IMPACT_BP);
-
-  return {
-    executionFee,
-    swapFeeUsd: p.swapFeeUsd,
-    swapPath: p.swapPath,
-    totalFeeUsd,
-    positionPriceImpact,
-    isHighPriceImpact,
-    isHighPriceImpactAccepted,
-    setIsHighPriceImpactAccepted,
-  };
-}

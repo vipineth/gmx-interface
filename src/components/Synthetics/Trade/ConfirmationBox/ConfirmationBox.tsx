@@ -21,7 +21,6 @@ import { BigNumber } from "ethers";
 import { useChainId } from "lib/chains";
 import { DEFAULT_SLIPPAGE_AMOUNT, USD_DECIMALS } from "lib/legacy";
 import { formatAmount, formatTokenAmount, formatTokenAmountWithUsd, formatUsd } from "lib/numbers";
-import { TradeFees } from "../TradeFees/TradeFees";
 import { Fees, TradeMode, TradeType, getSubmitError, tradeTypeLabels } from "../utils";
 
 import Checkbox from "components/Checkbox/Checkbox";
@@ -480,7 +479,7 @@ export function ConfirmationBox(p: Props) {
           </div>
         )} */}
 
-        <TradeFees fees={p.fees} />
+        {/* <TradeFees fees={p.fees} /> */}
 
         <div className="App-card-divider" />
 

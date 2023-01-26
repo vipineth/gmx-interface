@@ -1,10 +1,9 @@
-import { useMarketsData, useMarketsPoolsData, useOpenInterestData } from "domain/synthetics/markets";
+import { getMarketName, useMarketsData, useMarketsPoolsData, useOpenInterestData } from "domain/synthetics/markets";
 import { convertToUsd, getTokenData, useAvailableTokensData } from "domain/synthetics/tokens";
 import { BigNumber } from "ethers";
 import { useChainId } from "lib/chains";
 import { debounce } from "lodash";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { TotalSwapFees, getSwapPathFees } from "../fees";
 import { useMarketsFeesConfigs } from "../fees/useMarketsFeesConfigs";
 import {
   createSwapEstimator,
@@ -17,9 +16,8 @@ import { convertTokenAddress } from "config/tokens";
 
 export type SwapRoute = {
   swapPath?: string[];
-  totalSwapFees?: TotalSwapFees;
   positionMarketAddress?: string;
-  mostAbundantSwapMarketAddress?: string;
+  mostLiquidMarketAddressForSwap?: string;
 };
 
 export function useSwapRoute(p: {
@@ -35,13 +33,13 @@ export function useSwapRoute(p: {
   const [positionMarketAddress, setPositionMarketAddress] = useState<string | undefined>();
   const [mostAbundantSwapMarketAddress, setMostAbundantSwapMarketAddress] = useState<string>();
   const [swapPath, setSwapPath] = useState<string[]>();
-  const [totalSwapFees, setTotalSwapFees] = useState<TotalSwapFees>();
 
   const { marketsData } = useMarketsData(chainId);
   const { poolsData } = useMarketsPoolsData(chainId);
   const { openInterestData } = useOpenInterestData(chainId);
-  const { tokensData } = useAvailableTokensData(chainId);
   const { marketsFeesConfigs } = useMarketsFeesConfigs(chainId);
+
+  const { tokensData } = useAvailableTokensData(chainId);
 
   const isPosition =
     p.indexTokenAddress && p.initialColltaralAddress && p.targetCollateralAddress && p.isLong !== undefined;
@@ -66,24 +64,14 @@ export function useSwapRoute(p: {
 
       const swapPathEdges = findBestSwapPath(graph, from, to, usdIn, estimator);
       const swapPath = swapPathEdges?.map((e) => e.marketAddress);
-      const totalSwapFees = getSwapPathFees(
-        marketsData,
-        poolsData,
-        tokensData,
-        marketsFeesConfigs,
-        swapPath,
-        from,
-        amountIn
-      );
 
       setSwapPath(swapPath);
-      setTotalSwapFees(totalSwapFees);
 
-      console.log("swapPath", {
-        swapPath,
-        totalSwapFees,
-      });
-    }, 300),
+      console.log(
+        "swapPath",
+        swapPath?.map((p) => getMarketName(marketsData, tokensData, p, false, false))
+      );
+    }, 10),
     [graph, marketsData, poolsData, openInterestData, tokensData, marketsFeesConfigs]
   );
 
@@ -116,7 +104,7 @@ export function useSwapRoute(p: {
         const targetCollateralAddress = convertTokenAddress(chainId, p.targetCollateralAddress!, "wrapped");
 
         updateSwapPath(initialCollateralAddress, targetCollateralAddress, p.initialCollateralAmount);
-        updatePositionMarketAddress(indexTokenAddress, initialCollateralAddress, p.sizeDeltaUsd, p.isLong);
+        updatePositionMarketAddress(indexTokenAddress, targetCollateralAddress, p.sizeDeltaUsd, p.isLong);
       }
 
       if (isSwap) {
@@ -157,8 +145,7 @@ export function useSwapRoute(p: {
 
   return {
     swapPath,
-    totalSwapFees,
     positionMarketAddress,
-    mostAbundantSwapMarketAddress,
+    mostLiquidMarketAddressForSwap: mostAbundantSwapMarketAddress,
   };
 }

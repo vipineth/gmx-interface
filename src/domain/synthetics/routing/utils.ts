@@ -19,10 +19,11 @@ export function getBestMarketForPosition(
   tokensData: TokensData,
   indexTokenAddress: string | undefined,
   collateralTokenAddress: string | undefined,
-  sizeDeltaUsd: BigNumber | undefined,
+  increaseSizeUsd: BigNumber | undefined,
   isLong: boolean | undefined
 ) {
-  if (!collateralTokenAddress || !sizeDeltaUsd || !indexTokenAddress || typeof isLong === "undefined") return undefined;
+  if (!collateralTokenAddress || !increaseSizeUsd || !indexTokenAddress || typeof isLong === "undefined")
+    return undefined;
 
   const markets = getMarkets(marketsData);
 
@@ -43,7 +44,7 @@ export function getBestMarketForPosition(
         isLong
       );
 
-      if (liquidity?.gte(sizeDeltaUsd) && (!bestLiquidity || liquidity.lt(bestLiquidity))) {
+      if (liquidity?.gte(increaseSizeUsd) && (!bestLiquidity || liquidity.lt(bestLiquidity))) {
         bestMarketAddress = m.marketTokenAddress;
         bestLiquidity = liquidity;
       }
@@ -149,7 +150,7 @@ export const createSwapEstimator = (
     const swapFee = getSwapFees(marketsData, poolsData, tokensData, feeConfigs, e.marketAddress, e.from, usdIn);
     const usdOut = convertToUsd(swapFee?.amountOut, outToken?.decimals, outToken?.prices?.maxPrice);
 
-    const fees = swapFee?.swapFeeUsd.sub(swapFee.cappedImpactDeltaUsd);
+    const fees = swapFee?.swapFeeUsd.sub(swapFee.priceImpactDeltaUsd);
 
     if (!usdOut || !outLiquidity?.gt(usdOut) || !fees) {
       return {
