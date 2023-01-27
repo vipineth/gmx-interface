@@ -36,7 +36,7 @@ describe("applyImpactFactor", () => {
     [1000000, "1", "0.0002", "99999999999999999145886800000000"],
     [10000000, "1", "0.0002", "999999999999999992287429300000000"],
   ]) {
-    it(`should keep difference >1/1e10 from the contract value: ${expected}`, () => {
+    it(`should keep difference <1/1e10 from the contract value: ${expected}`, () => {
       const result = applyImpactFactor(
         ethers.utils.parseUnits(String(diffUsd), 30),
         ethers.utils.parseUnits(String(impactFactor), 30),

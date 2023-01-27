@@ -19,7 +19,7 @@ import shortImg from "img/short.svg";
 import swapImg from "img/swap.svg";
 import { useChainId } from "lib/chains";
 import { BASIS_POINTS_DIVISOR, PRECISION, USD_DECIMALS, adjustForDecimals } from "lib/legacy";
-import { parseValue } from "lib/numbers";
+import { applyFactor, parseValue } from "lib/numbers";
 import { useMemo, useState } from "react";
 
 export enum TradeType {
@@ -58,7 +58,6 @@ export const avaialbleModes = {
   [TradeType.Swap]: [TradeMode.Market, TradeMode.Limit],
 };
 
-const TRIGGER_RATIO_PRECISION = PRECISION;
 const LEVERAGE_PRECISION = BigNumber.from(BASIS_POINTS_DIVISOR);
 
 export function getSubmitError(p: {
@@ -151,6 +150,7 @@ export function getNextTokenAmount(p: {
   isInvertedTriggerRatio?: boolean;
   leverageMultiplier?: BigNumber;
   isInvertedLeverage?: boolean;
+  positionFeeFactor?: BigNumber;
 }) {
   const fromUsd = convertToUsd(p.fromTokenAmount, p.fromToken.decimals, p.fromTokenPrice);
 
@@ -159,13 +159,11 @@ export function getNextTokenAmount(p: {
   if (!toAmount || !fromUsd) return undefined;
 
   if (p.swapTriggerRatio?.gt(0)) {
-    const ratio = p.isInvertedTriggerRatio
-      ? TRIGGER_RATIO_PRECISION.mul(TRIGGER_RATIO_PRECISION).div(p.swapTriggerRatio)
-      : p.swapTriggerRatio;
+    const ratio = p.isInvertedTriggerRatio ? PRECISION.mul(PRECISION).div(p.swapTriggerRatio) : p.swapTriggerRatio;
 
     const adjustedDecimalsRatio = adjustForDecimals(ratio, p.fromToken.decimals, p.toToken.decimals);
 
-    toAmount = p.fromTokenAmount.mul(adjustedDecimalsRatio).div(TRIGGER_RATIO_PRECISION);
+    toAmount = p.fromTokenAmount.mul(adjustedDecimalsRatio).div(PRECISION);
   } else if (p.triggerPrice?.gt(0)) {
     if (p.isInvertedTriggerPrice) {
       const toTriggerUsd = convertToUsd(p.fromTokenAmount, p.fromToken.decimals, p.triggerPrice);
@@ -176,12 +174,14 @@ export function getNextTokenAmount(p: {
     }
   }
 
-  if (p.leverageMultiplier) {
-    const leverage = p.isInvertedLeverage
-      ? LEVERAGE_PRECISION.mul(LEVERAGE_PRECISION).div(p.leverageMultiplier)
-      : p.leverageMultiplier;
+  if (p.leverageMultiplier && p.positionFeeFactor) {
+    let newLeverage = p.leverageMultiplier.sub(applyFactor(p.leverageMultiplier, p.positionFeeFactor));
 
-    toAmount = toAmount?.mul(leverage).div(LEVERAGE_PRECISION);
+    if (p.isInvertedLeverage) {
+      newLeverage = LEVERAGE_PRECISION.mul(LEVERAGE_PRECISION).div(newLeverage);
+    }
+
+    toAmount = toAmount?.mul(newLeverage).div(LEVERAGE_PRECISION);
   }
 
   return toAmount;
@@ -219,77 +219,6 @@ export function useSwapTriggerRatioState(p: {
     ratio,
     biggestSide,
     markRatio,
-  };
-}
-
-export function useAvailableSwapTokens(p: { indexTokenAddress?: string; isSwap: boolean }) {
-  const { chainId } = useChainId();
-
-  const { marketsData } = useMarketsData(chainId);
-  const { tokensData } = useAvailableTokensData(chainId);
-
-  const markets = getMarkets(marketsData);
-
-  const infoTokens = useMemo(() => adaptToInfoTokens(tokensData), [tokensData]);
-
-  const { longCollaterals, shortCollaterals, indexTokens, indexCollateralsMap } = useMemo(() => {
-    const nativeToken = getTokenData(tokensData, NATIVE_TOKEN_ADDRESS)!;
-    const wrappedToken = getWrappedToken(chainId);
-
-    const longMap: { [address: string]: Token } = {};
-    const shortMap: { [address: string]: Token } = {};
-    const indexMap: { [address: string]: Token } = {};
-
-    const indexCollateralsMap: { [indexAddress: string]: { [collateral: string]: Token } } = {};
-
-    for (const market of markets) {
-      if (market.longTokenAddress === wrappedToken.address) {
-        longMap[nativeToken.address] = nativeToken;
-      }
-
-      if (market.shortTokenAddress === wrappedToken.address) {
-        shortMap[nativeToken.address] = nativeToken;
-      }
-
-      const longToken = getTokenData(tokensData, market.longTokenAddress)!;
-      const shortToken = getTokenData(tokensData, market.shortTokenAddress)!;
-
-      longMap[longToken.address] = longToken;
-      shortMap[shortToken.address] = shortToken;
-
-      const indexToken =
-        market.indexTokenAddress === wrappedToken.address
-          ? nativeToken
-          : getTokenData(tokensData, market.indexTokenAddress)!;
-
-      indexMap[indexToken.address] = indexToken;
-
-      indexCollateralsMap[indexToken.address] = indexCollateralsMap[indexToken.address] || {};
-      indexCollateralsMap[indexToken.address][longToken.address] = longToken;
-      indexCollateralsMap[indexToken.address][shortToken.address] = shortToken;
-    }
-
-    return {
-      longCollaterals: Object.values(longMap) as Token[],
-      shortCollaterals: Object.values(shortMap) as Token[],
-      indexTokens: Object.values(indexMap) as Token[],
-      indexCollateralsMap,
-    };
-  }, [chainId, markets, tokensData]);
-
-  const availableFromTokens: Token[] = longCollaterals.concat(shortCollaterals);
-  const availableToTokens: Token[] = p.isSwap ? availableFromTokens : indexTokens;
-
-  const availableCollaterals =
-    !p.isSwap && p.indexTokenAddress
-      ? (Object.values(indexCollateralsMap[p.indexTokenAddress] || {}) as Token[])
-      : undefined;
-
-  return {
-    availableFromTokens,
-    availableToTokens,
-    availableCollaterals,
-    infoTokens,
   };
 }
 

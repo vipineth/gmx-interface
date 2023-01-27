@@ -18,7 +18,7 @@ import {
   SYNTHETICS_SWAP_TO_TOKEN_KEY,
 } from "config/localStorage";
 import { convertTokenAddress } from "config/tokens";
-import { useTokenInputState } from "domain/synthetics/exchange";
+import { useSelectableSwapTokens, useTokenInputState } from "domain/synthetics/exchange";
 import { convertToTokenAmount, convertToUsd, getTokenData, useAvailableTokensData } from "domain/synthetics/tokens";
 import { BigNumber } from "ethers";
 
@@ -71,7 +71,6 @@ import {
   tradeModeLabels,
   tradeTypeIcons,
   tradeTypeLabels,
-  useAvailableSwapTokens,
   useSwapTriggerRatioState,
 } from "../utils";
 
@@ -179,7 +178,7 @@ export function SwapBox(p: Props) {
   const receiveTokenAddress = collateralTokenAddress;
   const receiveToken = getTokenData(tokensData, receiveTokenAddress);
 
-  const { availableFromTokens, availableToTokens, availableCollaterals, infoTokens } = useAvailableSwapTokens({
+  const { availableFromTokens, availableToTokens, availableCollaterals, infoTokens } = useSelectableSwapTokens({
     isSwap,
     indexTokenAddress: isPosition ? toTokenInput.tokenAddress : undefined,
   });
@@ -218,7 +217,10 @@ export function SwapBox(p: Props) {
     isLong: isPosition ? isLong : undefined,
   });
 
-  const feesConfig = getMarketFeesConfig(marketsFeesConfigs, swapRoute.positionMarketAddress);
+  const feesConfig = getMarketFeesConfig(
+    marketsFeesConfigs,
+    swapRoute.positionMarketAddress || p.selectedMarketAddress
+  );
 
   const fees = useMemo(() => {
     const executionFee = getExecutionFee(tokensData);
@@ -524,6 +526,7 @@ export function SwapBox(p: Props) {
           isInvertedTriggerRatio: swapRatio?.biggestSide === "to",
           leverageMultiplier,
           isInvertedLeverage: false,
+          positionFeeFactor: feesConfig?.positionFeeFactor,
         });
 
         toTokenInput.setValueByTokenAmount(toAmount);
@@ -544,12 +547,13 @@ export function SwapBox(p: Props) {
           isInvertedTriggerRatio: swapRatio?.biggestSide === "from",
           leverageMultiplier,
           isInvertedLeverage: true,
+          positionFeeFactor: feesConfig?.positionFeeFactor,
         });
-
         fromTokenInput.setValueByTokenAmount(fromAmount);
       }
     },
     [
+      feesConfig?.positionFeeFactor,
       focusedInput,
       fromTokenInput,
       leverageMultiplier,
