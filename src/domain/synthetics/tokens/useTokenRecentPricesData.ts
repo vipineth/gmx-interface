@@ -25,7 +25,10 @@ type TokenPricesDataResult = {
 export function useTokenRecentPricesData(chainId: number): TokenPricesDataResult {
   const url = getOracleKeeperUrl(chainId, "/prices/tickers");
 
-  const { data, isValidating, error } = useSWR<BackendResponse>(url, { fetcher: jsonFetcher });
+  const { data, isValidating, error } = useSWR<BackendResponse>(url, {
+    fetcher: jsonFetcher,
+    refreshInterval: 10000000,
+  });
 
   return useMemo(() => {
     return {

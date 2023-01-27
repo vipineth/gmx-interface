@@ -299,3 +299,63 @@ export function bellmanFord(graph: MarketsGraph, from: string, to: string, usdIn
 
   return path.reverse();
 }
+
+export function getBestSwapPath(paths: Edge[][], usdIn: BigNumber, estimator: SwapEstimator) {
+  if (!paths.length) {
+    return undefined;
+  }
+
+  let bestPath = paths[0];
+  let bestPathStats = estimator(bestPath[0], usdIn);
+
+  for (const path of paths) {
+    const pathStats = estimator(path[0], usdIn);
+
+    if (pathStats.usdOut.gt(bestPathStats.usdOut)) {
+      bestPath = path;
+      bestPathStats = pathStats;
+    }
+  }
+
+  return bestPath;
+}
+
+export function findAllPaths(graph: MarketsGraph, from: string, to: string, maxDepth = 3) {
+  const paths: Edge[][] = [];
+
+  function dfs(edge: Edge, path: Edge[], visited: { [marketAddress: string]: boolean }) {
+    if (path.length >= maxDepth || visited[edge.marketAddress]) {
+      return;
+    }
+
+    visited[edge.marketAddress] = true;
+    path.push(edge);
+
+    if (edge.to === to) {
+      paths.push(path);
+      return;
+    }
+
+    const edges = graph.abjacencyList[edge.to];
+
+    if (!edges?.length) {
+      return;
+    }
+
+    for (const e of edges) {
+      dfs(e, [...path], visited);
+    }
+  }
+
+  const edges = graph.abjacencyList[from];
+
+  if (!edges?.length) {
+    return undefined;
+  }
+
+  for (const e of edges) {
+    dfs(e, [], {});
+  }
+
+  return paths;
+}

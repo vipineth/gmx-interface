@@ -86,10 +86,10 @@ import {
 import { useMarketsFeesConfigs } from "domain/synthetics/fees/useMarketsFeesConfigs";
 import { useSwapRoute } from "domain/synthetics/routing/useSwapRoute";
 import { SwapCard } from "../../SwapCard/SwapCard";
-
 import { TradeFees } from "components/Synthetics/TradeFees/TradeFees";
-import "./SwapBox.scss";
 import { HIGH_PRICE_IMPACT_BP } from "config/synthetics";
+
+import "./SwapBox.scss";
 
 enum FocusedInput {
   From = "From",
@@ -187,10 +187,13 @@ export function SwapBox(p: Props) {
   const markPrice = toTokenInput.price;
   const triggerPricePrefix = getTriggerPricePrefix();
 
-  const sizeDeltaUsd =
-    toTokenInput.token && entryPrice
-      ? convertToUsd(toTokenInput.tokenAmount, toTokenInput.token?.decimals, entryPrice)
-      : BigNumber.from(0);
+  const sizeDeltaUsd = useMemo(() => {
+    return toTokenInput.usdAmount;
+  }, [toTokenInput.usdAmount]);
+
+  toTokenInput.token && entryPrice
+    ? convertToUsd(toTokenInput.tokenAmount, toTokenInput.token?.decimals, entryPrice)
+    : BigNumber.from(0);
 
   const positionKey = getPositionKey(
     account || undefined,
@@ -256,6 +259,7 @@ export function SwapBox(p: Props) {
 
     if (isPosition) {
       let positionFee: FeeItem | undefined;
+      const collateralDeltaUsd = fromTokenInput.usdAmount;
 
       const positionFeeUsd =
         sizeDeltaUsd && feesConfig?.positionFeeFactor
@@ -265,7 +269,7 @@ export function SwapBox(p: Props) {
       if (positionFeeUsd) {
         positionFee = {
           deltaUsd: positionFeeUsd.mul(-1),
-          bps: getBasisPoints(positionFeeUsd, fromTokenInput.usdAmount),
+          bps: getBasisPoints(positionFeeUsd.mul(-1), collateralDeltaUsd),
         };
       }
 
@@ -282,7 +286,7 @@ export function SwapBox(p: Props) {
       if (positionPriceImpactDeltaUsd) {
         positionPriceImpact = {
           deltaUsd: positionPriceImpactDeltaUsd,
-          bps: getBasisPoints(positionPriceImpactDeltaUsd, fromTokenInput.usdAmount),
+          bps: getBasisPoints(positionPriceImpactDeltaUsd, collateralDeltaUsd),
         };
       }
 

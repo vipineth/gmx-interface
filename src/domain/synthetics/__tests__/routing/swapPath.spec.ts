@@ -1,3 +1,6 @@
+import { getTotalSwapFees } from "domain/synthetics/fees";
+import { Edge, SwapEstimator } from "domain/synthetics/routing/types";
+import { createSwapEstimator, findBestSwapPath, getMarketsGraph } from "domain/synthetics/routing/utils";
 import {
   mockFeeConfigsData,
   mockMarketsData,
@@ -5,9 +8,6 @@ import {
   mockPoolsData,
   mockTokensData,
 } from "domain/synthetics/testUtils/mocks";
-import { getTotalSwapFees } from "domain/synthetics/fees";
-import { Edge, SwapEstimator } from "domain/synthetics/routing/types";
-import { createSwapEstimator, findBestSwapPath, getMarketsGraph } from "domain/synthetics/routing/utils";
 import { convertToTokenAmount, getTokenData } from "domain/synthetics/tokens";
 import { BigNumber } from "ethers";
 import { expandDecimals, formatUsd } from "lib/numbers";

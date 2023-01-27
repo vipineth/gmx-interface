@@ -1,7 +1,7 @@
 import { MarketsData, MarketsPoolsData, getMarket, getOppositeCollateral } from "domain/synthetics/markets";
 import { TokensData, convertToTokenAmount, convertToUsd, getTokenData } from "domain/synthetics/tokens";
 import { BigNumber } from "ethers";
-import { applyFactor, getBasisPoints } from "lib/numbers";
+import { applyFactor, formatTokenAmount, formatUsd, getBasisPoints } from "lib/numbers";
 import { getMarketFeesConfig } from ".";
 import { FeeItem, MarketsFeesConfigsData, SwapFeeItem, SwapStepFees, TotalSwapFees } from "../types";
 import { applySwapImpactWithCap, getPriceImpactForSwap } from "./priceImpact";

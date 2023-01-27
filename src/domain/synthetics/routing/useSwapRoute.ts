@@ -1,18 +1,18 @@
-import { getMarketName, useMarketsData, useMarketsPoolsData, useOpenInterestData } from "domain/synthetics/markets";
+import { convertTokenAddress } from "config/tokens";
+import { useMarketsData, useMarketsPoolsData, useOpenInterestData } from "domain/synthetics/markets";
 import { convertToUsd, getTokenData, useAvailableTokensData } from "domain/synthetics/tokens";
 import { BigNumber } from "ethers";
 import { useChainId } from "lib/chains";
-import { debounce } from "lodash";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useMarketsFeesConfigs } from "../fees/useMarketsFeesConfigs";
 import {
   createSwapEstimator,
-  findBestSwapPath,
+  findAllPaths,
   getBestMarketForPosition,
+  getBestSwapPath,
   getMarketsGraph,
-  getMostAbundantMarketForSwap,
+  getMostAbundantMarketForSwap as getMostLiquidMarketForSwap,
 } from "./utils";
-import { convertTokenAddress } from "config/tokens";
 
 export type SwapRoute = {
   swapPath?: string[];
@@ -38,101 +38,94 @@ export function useSwapRoute(p: {
   const { poolsData } = useMarketsPoolsData(chainId);
   const { openInterestData } = useOpenInterestData(chainId);
   const { marketsFeesConfigs } = useMarketsFeesConfigs(chainId);
-
   const { tokensData } = useAvailableTokensData(chainId);
 
-  const isPosition =
-    p.indexTokenAddress && p.initialColltaralAddress && p.targetCollateralAddress && p.isLong !== undefined;
-  const isSwap = p.initialColltaralAddress && p.targetCollateralAddress && p.initialCollateralAmount;
+  const fromAddress = p.initialColltaralAddress
+    ? convertTokenAddress(chainId, p.initialColltaralAddress, "wrapped")
+    : undefined;
+
+  const toAddress = p.targetCollateralAddress
+    ? convertTokenAddress(chainId, p.targetCollateralAddress, "wrapped")
+    : undefined;
+
+  const indexAddress = p.indexTokenAddress ? convertTokenAddress(chainId, p.indexTokenAddress, "wrapped") : undefined;
 
   const graph = useMemo(() => {
     return getMarketsGraph(marketsData);
   }, [marketsData]);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const updateSwapPath = useCallback(
-    debounce((from: string, to: string, amountIn: BigNumber) => {
-      const fromToken = getTokenData(tokensData, from);
+  const paths = useMemo(() => {
+    if (!fromAddress || !toAddress) {
+      return undefined;
+    }
 
-      const estimator = createSwapEstimator(marketsData, poolsData, openInterestData, tokensData, marketsFeesConfigs);
+    if (fromAddress === toAddress) {
+      return [];
+    }
 
-      const usdIn = convertToUsd(amountIn, fromToken?.decimals, fromToken?.prices?.minPrice);
+    return findAllPaths(graph, fromAddress, toAddress);
+  }, [fromAddress, graph, toAddress]);
 
-      if (!usdIn) {
-        return;
-      }
+  useEffect(() => {
+    if (!paths) {
+      setSwapPath(undefined);
+      return;
+    }
 
-      const swapPathEdges = findBestSwapPath(graph, from, to, usdIn, estimator);
-      const swapPath = swapPathEdges?.map((e) => e.marketAddress);
+    if (fromAddress === toAddress) {
+      setSwapPath([]);
+    }
 
-      setSwapPath(swapPath);
+    const estimator = createSwapEstimator(marketsData, poolsData, openInterestData, tokensData, marketsFeesConfigs);
 
-      console.log(
-        "swapPath",
-        swapPath?.map((p) => getMarketName(marketsData, tokensData, p, false, false))
-      );
-    }, 10),
-    [graph, marketsData, poolsData, openInterestData, tokensData, marketsFeesConfigs]
-  );
+    const tokenIn = getTokenData(tokensData, fromAddress);
+    const usdIn = convertToUsd(p.initialCollateralAmount, tokenIn?.decimals, tokenIn?.prices?.minPrice);
 
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  const updatePositionMarketAddress = useCallback(
-    debounce((indexToken: string, collateralToken: string, sizeDeltaUsd: BigNumber, isLong: boolean) => {
-      const marketAddress = getBestMarketForPosition(
-        marketsData,
-        poolsData,
-        openInterestData,
-        tokensData,
-        indexToken,
-        collateralToken,
-        sizeDeltaUsd,
-        isLong
-      );
+    if (!usdIn) {
+      setSwapPath(undefined);
+      return;
+    }
 
-      setPositionMarketAddress(marketAddress);
+    const bestSwapPath = getBestSwapPath(paths, usdIn, estimator);
+    const addresses = bestSwapPath?.map((edge) => edge.marketAddress);
 
-      console.log("marketAddress", marketAddress);
-    }, 300),
-    [marketsData, poolsData, openInterestData, tokensData]
-  );
+    setSwapPath(addresses);
+  }, [
+    fromAddress,
+    marketsData,
+    marketsFeesConfigs,
+    openInterestData,
+    p.initialCollateralAmount,
+    paths,
+    poolsData,
+    toAddress,
+    tokensData,
+  ]);
 
-  useEffect(
-    function updateRoute() {
-      if (isPosition) {
-        const indexTokenAddress = convertTokenAddress(chainId, p.indexTokenAddress!, "wrapped");
-        const initialCollateralAddress = convertTokenAddress(chainId, p.initialColltaralAddress!, "wrapped");
-        const targetCollateralAddress = convertTokenAddress(chainId, p.targetCollateralAddress!, "wrapped");
+  useEffect(() => {
+    if (!indexAddress || p.isLong === undefined) {
+      setPositionMarketAddress(undefined);
+      return;
+    }
 
-        updateSwapPath(initialCollateralAddress, targetCollateralAddress, p.initialCollateralAmount);
-        updatePositionMarketAddress(indexTokenAddress, targetCollateralAddress, p.sizeDeltaUsd, p.isLong);
-      }
-
-      if (isSwap) {
-        const initialCollateralAddress = convertTokenAddress(chainId, p.initialColltaralAddress!, "wrapped");
-        const targetCollateralAddress = convertTokenAddress(chainId, p.targetCollateralAddress!, "wrapped");
-
-        updateSwapPath(initialCollateralAddress, targetCollateralAddress, p.initialCollateralAmount);
-      }
-    },
-    [
-      chainId,
-      isPosition,
-      isSwap,
-      p.indexTokenAddress,
-      p.initialCollateralAmount,
-      p.initialColltaralAddress,
-      p.isLong,
+    const bestMarket = getBestMarketForPosition(
+      marketsData,
+      poolsData,
+      openInterestData,
+      tokensData,
+      indexAddress,
+      toAddress,
       p.sizeDeltaUsd,
-      p.targetCollateralAddress,
-      updatePositionMarketAddress,
-      updateSwapPath,
-    ]
-  );
+      p.isLong
+    );
+
+    setPositionMarketAddress(bestMarket);
+  }, [indexAddress, p.isLong, p.sizeDeltaUsd, marketsData, tokensData, poolsData, openInterestData, toAddress]);
 
   useEffect(() => {
     const targetCollateralAddress = convertTokenAddress(chainId, p.targetCollateralAddress!, "wrapped");
 
-    const market = getMostAbundantMarketForSwap(
+    const market = getMostLiquidMarketForSwap(
       marketsData,
       poolsData,
       openInterestData,
