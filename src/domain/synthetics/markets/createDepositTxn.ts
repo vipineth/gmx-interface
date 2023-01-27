@@ -8,8 +8,8 @@ import ExchangeRouter from "abis/ExchangeRouter.json";
 
 type Params = {
   account: string;
-  longTokenAddress?: string;
-  shortTokenAddress?: string;
+  longTokenAddress: string;
+  shortTokenAddress: string;
   marketTokenAddress: string;
   longTokenAmount?: BigNumber;
   shortTokenAmount?: BigNumber;
@@ -19,7 +19,7 @@ type Params = {
 
 export async function createDepositTxn(chainId: number, library: Web3Provider, p: Params) {
   const contract = new ethers.Contract(getContract(chainId, "ExchangeRouter"), ExchangeRouter.abi, library.getSigner());
-  const depositStoreAdress = getContract(chainId, "DepositStore");
+  const depositVaultAddress = getContract(chainId, "DepositVault");
 
   const isNativeDeposit = Boolean(isAddressZero(p.longTokenAddress) && p.longTokenAmount?.gt(0));
 
@@ -29,20 +29,24 @@ export async function createDepositTxn(chainId: number, library: Web3Provider, p
 
   const sendLongTokenCall =
     !isNativeDeposit && p.longTokenAmount?.gt(0) && p.longTokenAddress
-      ? contract.interface.encodeFunctionData("sendTokens", [p.longTokenAddress, depositStoreAdress, p.longTokenAmount])
+      ? contract.interface.encodeFunctionData("sendTokens", [
+          p.longTokenAddress,
+          depositVaultAddress,
+          p.longTokenAmount,
+        ])
       : undefined;
 
   const sendShortTokenCall =
     p.shortTokenAmount?.gt(0) && p.shortTokenAddress
       ? contract.interface.encodeFunctionData("sendTokens", [
           p.shortTokenAddress,
-          depositStoreAdress,
+          depositVaultAddress,
           p.shortTokenAmount,
         ])
       : undefined;
 
   const multicall = [
-    contract.interface.encodeFunctionData("sendWnt", [depositStoreAdress, wntAmount]),
+    contract.interface.encodeFunctionData("sendWnt", [depositVaultAddress, wntAmount]),
     sendLongTokenCall,
     sendShortTokenCall,
     contract.interface.encodeFunctionData("createDeposit", [
@@ -50,6 +54,10 @@ export async function createDepositTxn(chainId: number, library: Web3Provider, p
         receiver: p.account,
         callbackContract: ethers.constants.AddressZero,
         market: p.marketTokenAddress,
+        initialLongToken: p.longTokenAddress,
+        initialShortToken: p.shortTokenAddress,
+        longTokenSwapPath: [],
+        shortTokenSwapPath: [],
         // TODO: correct slippage
         minMarketTokens: p.minMarketTokens?.div(2) || BigNumber.from(0),
         shouldUnwrapNativeToken: isNativeDeposit,

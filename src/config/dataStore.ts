@@ -67,6 +67,16 @@ export const ESTIMATED_FEE_BASE_GAS_LIMIT_KEY = hashString("ESTIMATED_FEE_BASE_G
 
 export const ESTIMATED_FEE_MULTIPLIER_FACTOR_KEY = hashString("ESTIMATED_FEE_MULTIPLIER_FACTOR");
 
+export const MARKET_LIST_KEY = hashString("MARKET_LIST");
+
+export const POSITION_LIST_KEY = hashString("POSITION_LIST");
+
+export const ACCOUNT_POSITION_LIST_KEY = hashString("ACCOUNT_POSITION_LIST");
+
+export const ORDER_LIST_KEY = hashString("ORDER_LIST");
+
+export const ACCOUNT_ORDER_LIST_KEY = hashString("ACCOUNT_ORDER_LIST");
+
 export function positionImpactFactorKey(market: string, isPositive: boolean) {
   return hashData(["bytes32", "address", "bool"], [POSITION_IMPACT_FACTOR_KEY, market, isPositive]);
 }
@@ -160,4 +170,12 @@ export function decreaseOrderGasLimitKey() {
 
 export function swapOrderGasLimitKey() {
   return hashData(["bytes32"], [SWAP_ORDER_GAS_LIMIT_KEY]);
+}
+
+export function accountOrderListKey(account: string) {
+  return hashData(["bytes32", "address"], [ACCOUNT_ORDER_LIST_KEY, account]);
+}
+
+export function accountPositionListKey(account: string) {
+  return hashData(["bytes32", "address"], [ACCOUNT_POSITION_LIST_KEY, account]);
 }

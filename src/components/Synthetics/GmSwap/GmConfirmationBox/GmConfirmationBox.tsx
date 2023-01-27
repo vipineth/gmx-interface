@@ -161,12 +161,12 @@ export function GmConfirmationBox(p: Props) {
   }
 
   function onCreateDeposit() {
-    if (!account || !p.executionFee) return;
+    if (!account || !p.executionFee || !market) return;
 
     createDepositTxn(chainId, library, {
       account,
-      longTokenAddress: p.longDelta?.tokenAddress,
-      shortTokenAddress: p.shortDelta?.tokenAddress,
+      longTokenAddress: market.longTokenAddress,
+      shortTokenAddress: market.shortTokenAddress,
       longTokenAmount: p.longDelta?.tokenAmount,
       shortTokenAmount: p.shortDelta?.tokenAmount,
       marketTokenAddress: p.marketTokenAddress,
@@ -188,7 +188,8 @@ export function GmConfirmationBox(p: Props) {
 
     createWithdrawalTxn(chainId, library, {
       account,
-      longTokenAddress: market?.longTokenAddress!,
+      longTokenAddress: market.longTokenAddress,
+      shortTokenAddress: market.shortTokenAddress,
       marketLongAmount,
       marketShortAmount,
       minLongTokenAmount: p.longDelta?.tokenAmount,

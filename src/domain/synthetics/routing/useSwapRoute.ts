@@ -74,6 +74,7 @@ export function useSwapRoute(p: {
 
     if (fromAddress === toAddress) {
       setSwapPath([]);
+      return;
     }
 
     const estimator = createSwapEstimator(marketsData, poolsData, openInterestData, tokensData, marketsFeesConfigs);

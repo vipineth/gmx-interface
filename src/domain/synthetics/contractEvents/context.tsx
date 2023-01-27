@@ -48,174 +48,143 @@ export function ContractEventsProvider({ children }: { children: ReactNode }) {
   const handlers = useRef({});
 
   useImperativeHandle(handlers, () => ({
-    EventEmitter: {
-      PositionIncrease: (
-        contractKey: string,
-        account: string,
-        market: string,
-        collateralToken: string,
-        isLong: boolean,
-        executionPrice: BigNumber,
-        sizeDeltaInUsd: BigNumber,
-        sizeDeltaInTokens: BigNumber,
-        collateralDeltaAmount: BigNumber,
-        remainingCollateralAmount: BigNumber,
-        orderType: OrderType,
-        txnParams: EventTxnParams
-      ) => {
-        if (account !== currentAccount) return;
-
-        const positionKey = getPositionKey(account, market, collateralToken, isLong);
-
-        if (positionKey) {
-          setPositionsUpdates((old) =>
-            setByKey(old, positionKey, {
-              positionKey,
-              isIncrease: true,
-              sizeDeltaUsd: sizeDeltaInUsd,
-              collateralDeltaAmount,
-              sizeDeltaInTokens,
-              updatedAtBlock: txnParams.blockNumber,
-              updatedAt: Date.now(),
-            })
-          );
-        }
-      },
-
-      PositionDecrease: (
-        contractKey: string,
-        account: string,
-        market: string,
-        collateralToken: string,
-        isLong: boolean,
-        executionPrice: BigNumber,
-        sizeDeltaInUsd: BigNumber,
-        sizeDeltaInTokens: BigNumber,
-        collateralDeltaAmount: BigNumber,
-        pnlAmountForPool: BigNumber,
-        remainingCollateralAmount: BigNumber,
-        outputAmount: BigNumber,
-        orderType: OrderType,
-        txnParams: EventTxnParams
-      ) => {
-        // eslint-disable-next-line no-console
-        if (account !== currentAccount) return;
-
-        const positionKey = getPositionKey(account, market, collateralToken, isLong);
-
-        if (positionKey) {
-          setPositionsUpdates((old) =>
-            setByKey(old, positionKey, {
-              isIncrease: false,
-              sizeDeltaUsd: sizeDeltaInUsd,
-              sizeDeltaInTokens,
-              collateralDeltaAmount: collateralDeltaAmount,
-              updatedAt: Date.now(),
-              updatedAtBlock: txnParams.blockNumber,
-              positionKey,
-            })
-          );
-        }
-      },
-
-      OrderCreated: (key: string, data: RawContractOrder, txnParams: EventTxnParams) => {
-        if (data.addresses.account !== currentAccount) return;
-
-        setOrderStatuses((old) => setByKey(old, key, { key, data, createdTxnHash: txnParams.transactionHash }));
-      },
-
-      OrderExecuted: (key: string, txnParams: EventTxnParams) => {
-        setOrderStatuses((old) => updateByKey(old, key, { executedTxnHash: txnParams.transactionHash }));
-
-        const order = orderStatuses[key]?.data;
-
-        if (order) {
-          const orderLabel = orderTypeLabels[order.flags.orderType];
-
-          const targetCollateral = getToTokenFromSwapPath(
-            marketsData,
-            order.addresses.initialCollateralToken,
-            order.addresses.swapPath
-          );
-
-          const positionKey = getPositionKey(
-            order.addresses.account,
-            order.addresses.market,
-            targetCollateral,
-            order.flags.isLong
-          );
-
-          if (positionKey) {
-            setPendingPositionsUpdates((pendingPositions) => setByKey(pendingPositions, positionKey, undefined));
-          }
-
-          pushSuccessNotification(chainId, `${orderLabel} order executed`, txnParams);
-        }
-      },
-
-      OrderCancelled: (key: string, data, txnParams: EventTxnParams) => {
-        setOrderStatuses((old) => updateByKey(old, key, { cancelledTxnHash: txnParams.transactionHash }));
-
-        const order = orderStatuses[key]?.data;
-
-        if (order) {
-          const orderLabel = orderTypeLabels[order.flags.orderType];
-
-          const targetCollateral = getToTokenFromSwapPath(
-            marketsData,
-            order.addresses.initialCollateralToken,
-            order.addresses.swapPath
-          );
-
-          const positionKey = getPositionKey(
-            order.addresses.account,
-            order.addresses.market,
-            targetCollateral,
-            order.flags.isLong
-          );
-
-          if (positionKey) {
-            setPendingPositionsUpdates((pendingPositions) => setByKey(pendingPositions, positionKey, undefined));
-          }
-
-          pushErrorNotification(chainId, `${orderLabel} order cancelled`, txnParams);
-        }
-      },
-
-      DepositCreated: (key: string, data: RawContractDeposit, txnParams: EventTxnParams) => {
-        if (data.addresses.account !== currentAccount) return;
-        setDepositStatuses((old) => setByKey(old, key, { key, data, createdTxnHash: txnParams.transactionHash }));
-      },
-
-      DepositExecuted: (key: string, txnParams: EventTxnParams) => {
-        setDepositStatuses((old) => updateByKey(old, key, { executedTxnHash: txnParams.transactionHash }));
-
-        pushSuccessNotification(chainId, "Deposit executed", txnParams);
-      },
-
-      DepositCancelled: (key: string, data, txnParams: EventTxnParams) => {
-        setDepositStatuses((old) => updateByKey(old, key, { cancelledTxnHash: txnParams.transactionHash }));
-
-        pushErrorNotification(chainId, "Deposit cancelled", txnParams);
-      },
-
-      WithdrawalCreated: (key: string, data: RawContractWithdrawal, txnParams: EventTxnParams) => {
-        if (data.addresses.account !== currentAccount) return;
-        setWithdrawalStatuses((old) => setByKey(old, key, { key, data, createdTxnHash: txnParams.transactionHash }));
-      },
-
-      WithdrawalExecuted: (key: string, txnParams: EventTxnParams) => {
-        setWithdrawalStatuses((old) => updateByKey(old, key, { executedTxnHash: txnParams.transactionHash }));
-
-        pushSuccessNotification(chainId, "Withdrawal executed", txnParams);
-      },
-
-      WithdrawalCancelled: (key: string, data, txnParams: EventTxnParams) => {
-        setWithdrawalStatuses((old) => updateByKey(old, key, { cancelledTxnHash: txnParams.transactionHash }));
-
-        pushErrorNotification(chainId, "Withdrawal cancelled", txnParams);
-      },
-    },
+    // EventEmitter: {
+    //   PositionIncrease: (
+    //     contractKey: string,
+    //     account: string,
+    //     market: string,
+    //     collateralToken: string,
+    //     isLong: boolean,
+    //     executionPrice: BigNumber,
+    //     sizeDeltaInUsd: BigNumber,
+    //     sizeDeltaInTokens: BigNumber,
+    //     collateralDeltaAmount: BigNumber,
+    //     remainingCollateralAmount: BigNumber,
+    //     orderType: OrderType,
+    //     txnParams: EventTxnParams
+    //   ) => {
+    //     if (account !== currentAccount) return;
+    //     const positionKey = getPositionKey(account, market, collateralToken, isLong);
+    //     if (positionKey) {
+    //       setPositionsUpdates((old) =>
+    //         setByKey(old, positionKey, {
+    //           positionKey,
+    //           isIncrease: true,
+    //           sizeDeltaUsd: sizeDeltaInUsd,
+    //           collateralDeltaAmount,
+    //           sizeDeltaInTokens,
+    //           updatedAtBlock: txnParams.blockNumber,
+    //           updatedAt: Date.now(),
+    //         })
+    //       );
+    //     }
+    //   },
+    //   PositionDecrease: (
+    //     contractKey: string,
+    //     account: string,
+    //     market: string,
+    //     collateralToken: string,
+    //     isLong: boolean,
+    //     executionPrice: BigNumber,
+    //     sizeDeltaInUsd: BigNumber,
+    //     sizeDeltaInTokens: BigNumber,
+    //     collateralDeltaAmount: BigNumber,
+    //     pnlAmountForPool: BigNumber,
+    //     remainingCollateralAmount: BigNumber,
+    //     outputAmount: BigNumber,
+    //     orderType: OrderType,
+    //     txnParams: EventTxnParams
+    //   ) => {
+    //     // eslint-disable-next-line no-console
+    //     if (account !== currentAccount) return;
+    //     const positionKey = getPositionKey(account, market, collateralToken, isLong);
+    //     if (positionKey) {
+    //       setPositionsUpdates((old) =>
+    //         setByKey(old, positionKey, {
+    //           isIncrease: false,
+    //           sizeDeltaUsd: sizeDeltaInUsd,
+    //           sizeDeltaInTokens,
+    //           collateralDeltaAmount: collateralDeltaAmount,
+    //           updatedAt: Date.now(),
+    //           updatedAtBlock: txnParams.blockNumber,
+    //           positionKey,
+    //         })
+    //       );
+    //     }
+    //   },
+    //   OrderCreated: (key: string, data: RawContractOrder, txnParams: EventTxnParams) => {
+    //     if (data.addresses.account !== currentAccount) return;
+    //     setOrderStatuses((old) => setByKey(old, key, { key, data, createdTxnHash: txnParams.transactionHash }));
+    //   },
+    //   OrderExecuted: (key: string, txnParams: EventTxnParams) => {
+    //     setOrderStatuses((old) => updateByKey(old, key, { executedTxnHash: txnParams.transactionHash }));
+    //     const order = orderStatuses[key]?.data;
+    //     if (order) {
+    //       const orderLabel = orderTypeLabels[order.flags.orderType];
+    //       const targetCollateral = getToTokenFromSwapPath(
+    //         marketsData,
+    //         order.addresses.initialCollateralToken,
+    //         order.addresses.swapPath
+    //       );
+    //       const positionKey = getPositionKey(
+    //         order.addresses.account,
+    //         order.addresses.market,
+    //         targetCollateral,
+    //         order.flags.isLong
+    //       );
+    //       if (positionKey) {
+    //         setPendingPositionsUpdates((pendingPositions) => setByKey(pendingPositions, positionKey, undefined));
+    //       }
+    //       pushSuccessNotification(chainId, `${orderLabel} order executed`, txnParams);
+    //     }
+    //   },
+    //   OrderCancelled: (key: string, data, txnParams: EventTxnParams) => {
+    //     setOrderStatuses((old) => updateByKey(old, key, { cancelledTxnHash: txnParams.transactionHash }));
+    //     const order = orderStatuses[key]?.data;
+    //     if (order) {
+    //       const orderLabel = orderTypeLabels[order.flags.orderType];
+    //       const targetCollateral = getToTokenFromSwapPath(
+    //         marketsData,
+    //         order.addresses.initialCollateralToken,
+    //         order.addresses.swapPath
+    //       );
+    //       const positionKey = getPositionKey(
+    //         order.addresses.account,
+    //         order.addresses.market,
+    //         targetCollateral,
+    //         order.flags.isLong
+    //       );
+    //       if (positionKey) {
+    //         setPendingPositionsUpdates((pendingPositions) => setByKey(pendingPositions, positionKey, undefined));
+    //       }
+    //       pushErrorNotification(chainId, `${orderLabel} order cancelled`, txnParams);
+    //     }
+    //   },
+    //   DepositCreated: (key: string, data: RawContractDeposit, txnParams: EventTxnParams) => {
+    //     if (data.addresses.account !== currentAccount) return;
+    //     setDepositStatuses((old) => setByKey(old, key, { key, data, createdTxnHash: txnParams.transactionHash }));
+    //   },
+    //   DepositExecuted: (key: string, txnParams: EventTxnParams) => {
+    //     setDepositStatuses((old) => updateByKey(old, key, { executedTxnHash: txnParams.transactionHash }));
+    //     pushSuccessNotification(chainId, "Deposit executed", txnParams);
+    //   },
+    //   DepositCancelled: (key: string, data, txnParams: EventTxnParams) => {
+    //     setDepositStatuses((old) => updateByKey(old, key, { cancelledTxnHash: txnParams.transactionHash }));
+    //     pushErrorNotification(chainId, "Deposit cancelled", txnParams);
+    //   },
+    //   WithdrawalCreated: (key: string, data: RawContractWithdrawal, txnParams: EventTxnParams) => {
+    //     if (data.addresses.account !== currentAccount) return;
+    //     setWithdrawalStatuses((old) => setByKey(old, key, { key, data, createdTxnHash: txnParams.transactionHash }));
+    //   },
+    //   WithdrawalExecuted: (key: string, txnParams: EventTxnParams) => {
+    //     setWithdrawalStatuses((old) => updateByKey(old, key, { executedTxnHash: txnParams.transactionHash }));
+    //     pushSuccessNotification(chainId, "Withdrawal executed", txnParams);
+    //   },
+    //   WithdrawalCancelled: (key: string, data, txnParams: EventTxnParams) => {
+    //     setWithdrawalStatuses((old) => updateByKey(old, key, { cancelledTxnHash: txnParams.transactionHash }));
+    //     pushErrorNotification(chainId, "Withdrawal cancelled", txnParams);
+    //   },
+    // },
   }));
 
   useEffect(
