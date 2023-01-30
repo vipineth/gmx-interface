@@ -27,7 +27,7 @@ export function getBestMarketForPosition(
 
   const markets = getMarkets(marketsData);
 
-  let bestMarketAddress: string | undefined;
+  let bestMarketAddress: string = markets[0]?.marketTokenAddress;
   let bestLiquidity: BigNumber | undefined;
 
   for (const m of markets) {

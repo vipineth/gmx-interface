@@ -77,6 +77,8 @@ export const ORDER_LIST_KEY = hashString("ORDER_LIST");
 
 export const ACCOUNT_ORDER_LIST_KEY = hashString("ACCOUNT_ORDER_LIST");
 
+console.log("asdad", NONCE_KEY);
+
 export function positionImpactFactorKey(market: string, isPositive: boolean) {
   return hashData(["bytes32", "address", "bool"], [POSITION_IMPACT_FACTOR_KEY, market, isPositive]);
 }

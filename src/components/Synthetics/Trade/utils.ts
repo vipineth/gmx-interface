@@ -1,26 +1,16 @@
 import { t } from "@lingui/macro";
-import { NATIVE_TOKEN_ADDRESS, getWrappedToken } from "config/tokens";
 
 import { ExecutionFeeParams } from "domain/synthetics/fees";
-import { getMarkets, useMarketsData } from "domain/synthetics/markets";
-import {
-  TokensData,
-  adaptToInfoTokens,
-  convertToTokenAmount,
-  convertToUsd,
-  getTokenData,
-  useAvailableTokensData,
-} from "domain/synthetics/tokens";
+import { TokensData, convertToTokenAmount, convertToUsd, getTokenData } from "domain/synthetics/tokens";
 import { Token } from "domain/tokens";
 import { BigNumber } from "ethers";
 
 import longImg from "img/long.svg";
 import shortImg from "img/short.svg";
 import swapImg from "img/swap.svg";
-import { useChainId } from "lib/chains";
 import { BASIS_POINTS_DIVISOR, PRECISION, USD_DECIMALS, adjustForDecimals } from "lib/legacy";
 import { applyFactor, parseValue } from "lib/numbers";
-import { useMemo, useState } from "react";
+import { useState } from "react";
 
 export enum TradeType {
   Long = "Long",
