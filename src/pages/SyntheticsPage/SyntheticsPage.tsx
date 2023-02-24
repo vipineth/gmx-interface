@@ -12,23 +12,37 @@ import { TradeBox } from "components/Synthetics/Trade/TradeBox/TradeBox";
 import Tab from "components/Tab/Tab";
 import {
   SYNTHETICS_TRADE_COLLATERAL_KEY,
+  SYNTHETICS_TRADE_FROM_TOKEN_KEY,
   SYNTHETICS_TRADE_MARKET_KEY,
+  SYNTHETICS_TRADE_MODE_KEY,
+  SYNTHETICS_TRADE_TO_TOKEN_KEY,
   SYNTHETICS_TRADE_TYPE_KEY,
 } from "config/localStorage";
 import { cancelOrdersTxn } from "domain/synthetics/orders/cancelOrdersTxn";
 import { useAggregatedOrdersData } from "domain/synthetics/orders/useAggregatedOrdersData";
-import { getPosition, getPositionKey } from "domain/synthetics/positions";
+import { AggregatedPositionsData, getPosition, getPositionKey } from "domain/synthetics/positions";
 import { useAggregatedPositionsData } from "domain/synthetics/positions/useAggregatedPositionsData";
-import { TradeType } from "domain/synthetics/trade/types";
+import { TradeMode, TradeType } from "domain/synthetics/trade/types";
 import { useChainId } from "lib/chains";
 import { useLocalStorageByChainId, useLocalStorageSerializeKey } from "lib/localStorage";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { convertTokenAddress, getToken } from "config/tokens";
-import { getMarket, useMarketsData } from "domain/synthetics/markets";
-import { getTokenData, useAvailableTokensData } from "domain/synthetics/tokens";
-import { useAvailableSwapOptions } from "domain/synthetics/trade";
+import {
+  Market,
+  MarketsData,
+  MarketsOpenInterestData,
+  MarketsPoolsData,
+  getMarket,
+  getMostLiquidMarketForPosition,
+  getMostLiquidMarketForSwap,
+  useMarketsData,
+} from "domain/synthetics/markets";
+import { TokensData, getTokenData, useAvailableTokensData } from "domain/synthetics/tokens";
+import { getTradeFlags, useAvailableSwapOptions, useTokenInput } from "domain/synthetics/trade";
 
 import "./SyntheticsPage.scss";
+import { MarketsFeesConfigsData } from "domain/synthetics/fees";
+import { BigNumber } from "ethers";
 
 type Props = {
   onConnectWallet: () => void;
@@ -44,6 +58,171 @@ enum ListSection {
   Orders = "Orders",
 }
 
+const avaialbleModes = {
+  [TradeType.Long]: [TradeMode.Market, TradeMode.Limit, TradeMode.Trigger],
+  [TradeType.Short]: [TradeMode.Market, TradeMode.Limit, TradeMode.Trigger],
+  [TradeType.Swap]: [TradeMode.Market, TradeMode.Limit],
+};
+
+function useTradeOption(p: {
+  chainId: number;
+  tokensData: TokensData;
+  marketsData: MarketsData;
+  poolsData: MarketsPoolsData;
+  positionsData: AggregatedPositionsData;
+  openInterestData: MarketsOpenInterestData;
+  feesConfigs: MarketsFeesConfigsData;
+}) {
+  const { tokensData, chainId, marketsData, poolsData, openInterestData, feesConfigs, positionsData } = p;
+
+  const [tradeType, setTradeType] = useLocalStorageSerializeKey<TradeType>(
+    [chainId, SYNTHETICS_TRADE_TYPE_KEY],
+    TradeType.Long
+  );
+
+  const [tradeMode, setTradeMode] = useLocalStorageSerializeKey<TradeMode>(
+    [chainId, SYNTHETICS_TRADE_MODE_KEY],
+    TradeMode.Market
+  );
+
+  const { isLong, isSwap, isShort, isPosition, isIncrease, isTrigger, isMarket, isLimit } = getTradeFlags(
+    tradeType!,
+    tradeMode!
+  );
+
+  const fromTokenInput = useTokenInput(tokensData, {
+    priceType: "min",
+    localStorageKey: [chainId, SYNTHETICS_TRADE_FROM_TOKEN_KEY, tradeType],
+  });
+
+  const toTokenInput = useTokenInput(tokensData, {
+    priceType: isShort ? "min" : "max",
+    localStorageKey: [chainId, SYNTHETICS_TRADE_TO_TOKEN_KEY, isSwap],
+  });
+
+  const [collateralAddress, setCollateralAddress] = useLocalStorageSerializeKey<string | undefined>(
+    [chainId, SYNTHETICS_TRADE_COLLATERAL_KEY],
+    undefined
+  );
+
+  const [marketAddress, setMarketAddress] = useLocalStorageSerializeKey<string | undefined>(
+    [chainId, SYNTHETICS_TRADE_MARKET_KEY, tradeType, toTokenInput.tokenAddress],
+    undefined
+  );
+
+  const market = getMarket(marketsData, marketAddress);
+
+  const { availableSwapTokens, availableIndexTokens, availablePositionCollaterals, infoTokens } =
+    useAvailableSwapOptions({
+      selectedIndexTokenAddress: isPosition ? toTokenInput.tokenAddress : undefined,
+    });
+
+  const getOptimalMarkets = useCallback(
+    (sizeDeltaUsd: BigNumber) => {
+      const result: {
+        mostLiquidMarket?: Market;
+        minPriceImpactMarket?: Market;
+        hasPositionMarket?: Market;
+      } = {};
+
+      const markets = Object.values(marketsData);
+      const positions = Object.values(positionsData);
+
+      if (!toTokenInput.tokenAddress) {
+        return result;
+      }
+
+      result.mostLiquidMarket = getMostLiquidMarketForPosition(
+        marketsData,
+        poolsData,
+        openInterestData,
+        tokensData,
+        convertTokenAddress(chainId, toTokenInput.tokenAddress, "wrapped"),
+        undefined,
+        isLong
+      );
+
+      result.hasPositionMarket = markets.find((m) => {
+        return (
+          m.indexTokenAddress === convertTokenAddress(chainId, toTokenInput.tokenAddress!, "wrapped") &&
+          positions.find((p) => p.marketAddress === m.marketTokenAddress)
+        );
+      });
+
+      return result;
+    },
+    [chainId, isLong, marketsData, openInterestData, poolsData, positionsData, toTokenInput.tokenAddress, tokensData]
+  );
+
+  useEffect(
+    function updateMode() {
+      if (tradeType && tradeMode && !avaialbleModes[tradeType].includes(tradeMode)) {
+        setTradeMode(avaialbleModes[tradeType][0]);
+      }
+    },
+    [tradeType, setTradeMode, tradeMode]
+  );
+
+  useEffect(
+    function updateSwapTokens() {
+      if (!isSwap || !availableSwapTokens.length) return;
+
+      if (!availableSwapTokens.find((t) => t.address === fromTokenInput.tokenAddress)) {
+        fromTokenInput.setTokenAddress(availableSwapTokens[0].address);
+      }
+
+      if (!availableSwapTokens.find((t) => t.address === toTokenInput.tokenAddress)) {
+        toTokenInput.setTokenAddress(availableSwapTokens[0].address);
+      }
+    },
+    [availableSwapTokens, fromTokenInput, isSwap, toTokenInput]
+  );
+
+  useEffect(
+    function updatePositionTokens() {
+      if (!isPosition) return;
+
+      const needFromUpdate = !availableSwapTokens.find((t) => t.address === fromTokenInput.tokenAddress);
+
+      if (needFromUpdate && availableSwapTokens.length) {
+        fromTokenInput.setTokenAddress(availableSwapTokens[0].address);
+      }
+
+      const needIndexUpdateByAvailableTokens = !availableIndexTokens.find(
+        (t) => t.address === toTokenInput.tokenAddress
+      );
+
+      if (needIndexUpdateByAvailableTokens && availableIndexTokens.length) {
+        toTokenInput.setTokenAddress(availableIndexTokens[0].address);
+      }
+
+      const needCollateralUpdate = !availablePositionCollaterals.find((t) => t.address === collateralAddress);
+
+      if (needCollateralUpdate && availablePositionCollaterals.length) {
+        setCollateralAddress(availablePositionCollaterals[0].address);
+      }
+    },
+    [
+      availableIndexTokens,
+      availablePositionCollaterals,
+      availableSwapTokens,
+      collateralAddress,
+      fromTokenInput,
+      isPosition,
+      setCollateralAddress,
+      toTokenInput,
+      toTokenInput.tokenAddress,
+    ]
+  );
+
+  useEffect(
+    function initMarket() {
+      if (!isPosition) return;
+    },
+    [isPosition]
+  );
+}
+
 export function SyntheticsPage(p: Props) {
   const { chainId } = useChainId();
   const { library, account } = useWeb3React();
@@ -55,7 +234,6 @@ export function SyntheticsPage(p: Props) {
     [chainId, SYNTHETICS_TRADE_MARKET_KEY],
     undefined
   );
-
   const selectedMarket = getMarket(marketsData, selectedMarketAddress);
   const selectedIndexToken = getTokenData(tokensData, selectedMarket?.indexTokenAddress, "native");
 
@@ -67,7 +245,6 @@ export function SyntheticsPage(p: Props) {
     [chainId, SYNTHETICS_TRADE_COLLATERAL_KEY],
     undefined
   );
-
   const [selectedTradeType, setSelectedTradeType] = useLocalStorageSerializeKey(
     [chainId, SYNTHETICS_TRADE_TYPE_KEY],
     TradeType.Long
