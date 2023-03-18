@@ -20,11 +20,12 @@ import arbitrumIcon from "img/ic_arbitrum_96.svg";
 import avaxIcon from "img/ic_avalanche_96.svg";
 
 import TokenCard from "components/TokenCard/TokenCard";
-import { Trans } from "@lingui/macro";
+import { Trans, t } from "@lingui/macro";
 import { HeaderLink } from "components/Header/HeaderLink";
 import { ARBITRUM, AVALANCHE } from "config/chains";
 import { getServerUrl } from "config/backend";
 import { bigNumberify, formatAmount, numberWithCommas } from "lib/numbers";
+import { TradeDropdown } from "components/TradeDropdown/TradeDropdown";
 
 export default function Home({ showRedirectModal, redirectPopupTimestamp }) {
   // const [openedFAQIndex, setOpenedFAQIndex] = useState(null)
@@ -154,7 +155,11 @@ export default function Home({ showRedirectModal, redirectPopupTimestamp }) {
                 Trade BTC, ETH, AVAX and other top cryptocurrencies with up to 50x leverage directly from your wallet
               </Trans>
             </div>
-            <LaunchExchangeButton />
+            <TradeDropdown
+              redirectPopupTimestamp={redirectPopupTimestamp}
+              showRedirectModal={showRedirectModal}
+              buttonLabel={t`Launch App`}
+            />
           </div>
         </div>
         <div className="Home-latest-info-container default-container">
@@ -251,7 +256,11 @@ export default function Home({ showRedirectModal, redirectPopupTimestamp }) {
               <div className="Home-cta-option-info">
                 <div className="Home-cta-option-title">Arbitrum</div>
                 <div className="Home-cta-option-action">
-                  <LaunchExchangeButton />
+                  <TradeDropdown
+                    redirectPopupTimestamp={redirectPopupTimestamp}
+                    showRedirectModal={showRedirectModal}
+                    buttonLabel={t`Launch App`}
+                  />
                 </div>
               </div>
             </div>
@@ -262,7 +271,11 @@ export default function Home({ showRedirectModal, redirectPopupTimestamp }) {
               <div className="Home-cta-option-info">
                 <div className="Home-cta-option-title">Avalanche</div>
                 <div className="Home-cta-option-action">
-                  <LaunchExchangeButton />
+                  <TradeDropdown
+                    redirectPopupTimestamp={redirectPopupTimestamp}
+                    showRedirectModal={showRedirectModal}
+                    buttonLabel={t`Launch App`}
+                  />
                 </div>
               </div>
             </div>
