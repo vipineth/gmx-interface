@@ -12,6 +12,7 @@ import { FaChevronDown } from "react-icons/fa";
 import { createBreakpoint, useCopyToClipboard } from "react-use";
 import "./AddressDropdown.css";
 import ExternalLink from "components/ExternalLink/ExternalLink";
+import { useEnsName } from "wagmi";
 
 type Props = {
   account: string;
@@ -23,7 +24,12 @@ function AddressDropdown({ account, accountUrl, disconnectAccountAndCloseSetting
   const useBreakpoint = createBreakpoint({ L: 600, M: 550, S: 400 });
   const breakpoint = useBreakpoint();
   const [, copyToClipboard] = useCopyToClipboard();
-  const { ensName } = useENS(account);
+  // const { ensName } = useENS(account);
+  const ensName = useEnsName({
+    address: "0x6a928643e35e254fcc6927c689694897712d3827",
+    chainId: 1,
+  });
+  console.log(ensName);
   const { provider: ethereumProvider } = useJsonRpcProvider(ETH_MAINNET);
 
   return (
@@ -33,7 +39,7 @@ function AddressDropdown({ account, accountUrl, disconnectAccountAndCloseSetting
           <div className="user-avatar">
             {ethereumProvider && <Davatar size={20} address={account} provider={ethereumProvider} />}
           </div>
-          <span className="user-address">{ensName || shortenAddress(account, breakpoint === "S" ? 9 : 13)}</span>
+          <span className="user-address">{shortenAddress(account, breakpoint === "S" ? 9 : 13)}</span>
           <FaChevronDown />
         </button>
       </Menu.Button>

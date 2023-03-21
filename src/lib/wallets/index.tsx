@@ -56,7 +56,7 @@ export function hasCoinBaseWalletExtension() {
     return false;
   }
 
-  return window.ethereum.isCoinbaseWallet || ethereum.providers.find(({ isCoinbaseWallet }) => isCoinbaseWallet);
+  return window.ethereum?.isCoinbaseWallet || ethereum.providers?.find(({ isCoinbaseWallet }) => isCoinbaseWallet);
 }
 
 export function activateInjectedProvider(providerName: string) {
@@ -66,22 +66,22 @@ export function activateInjectedProvider(providerName: string) {
     return undefined;
   }
 
-  let provider;
-  if (ethereum?.providers) {
-    switch (providerName) {
-      case "CoinBase":
-        provider = ethereum.providers.find(({ isCoinbaseWallet }) => isCoinbaseWallet);
-        break;
-      case "MetaMask":
-      default:
-        provider = ethereum.providers.find(({ isMetaMask }) => isMetaMask);
-        break;
-    }
-  }
+  // let provider;
+  // if (ethereum?.providers) {
+  //   switch (providerName) {
+  //     case "CoinBase":
+  //       provider = ethereum.providers.find(({ isCoinbaseWallet }) => isCoinbaseWallet);
+  //       break;
+  //     case "MetaMask":
+  //     default:
+  //       provider = ethereum.providers.find(({ isMetaMask }) => isMetaMask);
+  //       break;
+  //   }
+  // }
 
-  if (provider) {
-    ethereum?.setSelectedProvider?.(provider);
-  }
+  // if (provider) {
+  //   ethereum?.setSelectedProvider?.(provider);
+  // }
 }
 
 export function getInjectedConnector() {
@@ -231,7 +231,7 @@ export const addBscNetwork = async () => {
 };
 
 export const addNetwork = async (metadata: NetworkMetadata) => {
-  await window.ethereum.request({ method: "wallet_addEthereumChain", params: [metadata] }).catch();
+  await window.ethereum?.request({ method: "wallet_addEthereumChain", params: [metadata] }).catch();
 };
 
 export const switchNetwork = async (chainId: number, active?: boolean) => {
@@ -245,7 +245,7 @@ export const switchNetwork = async (chainId: number, active?: boolean) => {
 
   try {
     const chainIdHex = "0x" + chainId.toString(16);
-    await window.ethereum.request({
+    await window.ethereum?.request({
       method: "wallet_switchEthereumChain",
       params: [{ chainId: chainIdHex }],
     });
@@ -318,22 +318,22 @@ export async function addTokenToMetamask(token: {
   imageUrl?: string;
 }) {
   try {
-    const wasAdded = await window.ethereum.request({
-      method: "wallet_watchAsset",
-      params: {
-        type: "ERC20",
-        options: {
-          address: token.address,
-          symbol: token.symbol,
-          decimals: token.decimals,
-          image: token.imageUrl,
-        },
-      },
-    });
-    if (wasAdded) {
-      // https://github.com/MetaMask/metamask-extension/issues/11377
-      // We can show a toast message when the token is added to metamask but because of the bug we can't. Once the bug is fixed we can show a toast message.
-    }
+    // const wasAdded = await window.ethereum?.request({
+    //   method: "wallet_watchAsset",
+    //   params: {
+    //     type: "ERC20",
+    //     options: {
+    //       address: token.address,
+    //       symbol: token.symbol,
+    //       decimals: token.decimals,
+    //       image: token.imageUrl,
+    //     },
+    //   },
+    // });
+    // if (wasAdded) {
+    // https://github.com/MetaMask/metamask-extension/issues/11377
+    // We can show a toast message when the token is added to metamask but because of the bug we can't. Once the bug is fixed we can show a toast message.
+    // }
   } catch (error) {
     // eslint-disable-next-line no-console
     console.error(error);

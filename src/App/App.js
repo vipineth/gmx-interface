@@ -1,9 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { SWRConfig } from "swr";
 import { ethers } from "ethers";
 import { Web3ReactProvider, useWeb3React } from "@web3-react/core";
 import { Web3Provider } from "@ethersproject/providers";
 import useScrollToTop from "lib/useScrollToTop";
+import { disconnect } from "@wagmi/core";
 
 import { Switch, Route, HashRouter as Router, Redirect, useLocation, useHistory } from "react-router-dom";
 
@@ -85,8 +86,6 @@ import {
 } from "config/localStorage";
 import {
   activateInjectedProvider,
-  clearWalletConnectData,
-  clearWalletLinkData,
   getInjectedHandler,
   getWalletConnectHandler,
   hasCoinBaseWalletExtension,
@@ -179,16 +178,8 @@ function FullApp() {
     }
   }, [query, history, location]);
 
-  const disconnectAccount = useCallback(() => {
-    // only works with WalletConnect
-    clearWalletConnectData();
-    // force clear localStorage connection for MM/CB Wallet (Brave legacy)
-    clearWalletLinkData();
-    deactivate();
-  }, [deactivate]);
-
   const disconnectAccountAndCloseSettings = () => {
-    disconnectAccount();
+    disconnect();
     localStorage.removeItem(SHOULD_EAGER_CONNECT_LOCALSTORAGE_KEY);
     localStorage.removeItem(CURRENT_PROVIDER_LOCALSTORAGE_KEY);
     setIsSettingsVisible(false);

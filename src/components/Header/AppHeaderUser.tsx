@@ -1,9 +1,11 @@
 import { useWeb3React } from "@web3-react/core";
 import AddressDropdown from "../AddressDropdown/AddressDropdown";
 import ConnectWalletButton from "../Common/ConnectWalletButton";
-import React, { useCallback, useEffect } from "react";
+import React, { useEffect } from "react";
 import { HeaderLink } from "./HeaderLink";
 import connectWalletImg from "img/ic_wallet_24.svg";
+import { useAccount, useSwitchNetwork } from "wagmi";
+import { useWeb3Modal } from "@web3modal/react";
 
 import "./Header.css";
 import { isHomeSite, getAccountUrl } from "lib/legacy";
@@ -12,7 +14,6 @@ import { Trans } from "@lingui/macro";
 import NetworkDropdown from "../NetworkDropdown/NetworkDropdown";
 import LanguagePopupHome from "../NetworkDropdown/LanguagePopupHome";
 import { ARBITRUM, ARBITRUM_TESTNET, AVALANCHE, AVALANCHE_FUJI, getChainName } from "config/chains";
-import { switchNetwork } from "lib/wallets";
 import { useChainId } from "lib/chains";
 import { isDevelopment } from "config/env";
 import { getIcon } from "config/icons";
@@ -67,6 +68,9 @@ export function AppHeaderUser({
   const { chainId } = useChainId();
   const { active, account } = useWeb3React();
   const showConnectionOptions = !isHomeSite();
+  const { address, isConnected } = useAccount();
+  const { open: openWalletModal } = useWeb3Modal();
+  const { switchNetwork } = useSwitchNetwork();
 
   useEffect(() => {
     if (active) {
@@ -74,19 +78,16 @@ export function AppHeaderUser({
     }
   }, [active, setWalletModalVisible]);
 
-  const onNetworkSelect = useCallback(
-    (option) => {
-      if (option.value === chainId) {
-        return;
-      }
-      return switchNetwork(option.value, active);
-    },
-    [chainId, active]
-  );
+  const onNetworkSelect = (option) => {
+    if (option.value === chainId) {
+      return;
+    }
+    switchNetwork?.(option.value);
+  };
 
   const selectorLabel = getChainName(chainId);
 
-  if (!active || !account) {
+  if (!isConnected || !address) {
     return (
       <div className="App-header-user">
         <div className={cx("App-header-trade-link", { "homepage-header": isHomeSite() })}>
@@ -102,7 +103,12 @@ export function AppHeaderUser({
 
         {showConnectionOptions ? (
           <>
-            <ConnectWalletButton onClick={() => setWalletModalVisible(true)} imgSrc={connectWalletImg}>
+            <ConnectWalletButton
+              onClick={async () => {
+                await openWalletModal({ route: "ConnectWallet" });
+              }}
+              imgSrc={connectWalletImg}
+            >
               {small ? <Trans>Connect</Trans> : <Trans>Connect Wallet</Trans>}
             </ConnectWalletButton>
             <NetworkDropdown
@@ -139,7 +145,7 @@ export function AppHeaderUser({
         <>
           <div className="App-header-user-address">
             <AddressDropdown
-              account={account}
+              account={address}
               accountUrl={accountUrl}
               disconnectAccountAndCloseSettings={disconnectAccountAndCloseSettings}
             />
