@@ -2,6 +2,8 @@ import { ethers } from "ethers";
 import { sample } from "lodash";
 import { NetworkMetadata } from "lib/wallets";
 import { isDevelopment } from "./env";
+import icavalanche24 from "img/ic_avalanche_24.svg";
+import icarbitrum24 from "img/ic_arbitrum_24.svg";
 
 const { parseEther } = ethers.utils;
 
@@ -27,6 +29,7 @@ if (isDevelopment()) {
 export const IS_NETWORK_DISABLED = {
   [ARBITRUM]: false,
   [AVALANCHE]: false,
+  [ARBITRUM_GOERLI]: !isDevelopment(),
 };
 
 export const CHAIN_NAMES_MAP = {
@@ -160,8 +163,9 @@ export const RPC_PROVIDERS = {
   [TESTNET]: ["https://data-seed-prebsc-1-s1.binance.org:8545/"],
   [ARBITRUM]: [getDefaultArbitrumRpcUrl()],
   [ARBITRUM_GOERLI]: [
-    // "https://goerli-rollup.arbitrum.io/rpc",
-    "https://arb-goerli.g.alchemy.com/v2/cZfd99JyN42V9Clbs_gOvA3GSBZH1-1j",
+    "https://goerli-rollup.arbitrum.io/rpc",
+    // "https://goerli.arbiscan.io//rpc",
+    // "https://arb-goerli.g.alchemy.com/v2/cZfd99JyN42V9Clbs_gOvA3GSBZH1-1j",
     // "https://endpoints.omniatech.io/v1/arbitrum/goerli/public",
     // "https://arbitrum-goerli.public.blastapi.io",
   ],
@@ -251,6 +255,16 @@ export const NETWORK_METADATA: { [chainId: number]: NetworkMetadata } = {
     blockExplorerUrls: [getExplorerUrl(AVALANCHE_FUJI)],
   },
 };
+
+export function getChainIcon(chainId) {
+  if (chainId === AVALANCHE) {
+    return icavalanche24;
+  }
+
+  if (chainId === ARBITRUM || chainId === ARBITRUM_GOERLI) {
+    return icarbitrum24;
+  }
+}
 
 export const getConstant = (chainId: number, key: string) => {
   if (!constants[chainId]) {

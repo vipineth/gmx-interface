@@ -108,7 +108,7 @@
   max-width: 50rem;
   margin: 3.1rem auto;
 }
-.transparent-btn {
+/* .transparent-btn {
   text-decoration: none;
   display: inline-flex;
   align-items: center;
@@ -123,7 +123,7 @@
 
 .transparent-btn:hover {
   background: var(--dark-blue-hover);
-}
+} */
 
 .transparent-btn:active {
   background: var(--dark-blue-active);

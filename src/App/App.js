@@ -16,6 +16,7 @@ import {
   REFERRAL_CODE_QUERY_PARAM,
 } from "lib/legacy";
 
+import { getLeaderboardUrl, getTeamRegistrationUrl, getTeamUrl } from "domain/leaderboard/urls";
 import { decodeReferralCode, encodeReferralCode } from "domain/referrals";
 import Actions from "pages/Actions/Actions";
 import BeginAccountTransfer from "pages/BeginAccountTransfer/BeginAccountTransfer";
@@ -27,6 +28,9 @@ import CompleteAccountTransfer from "pages/CompleteAccountTransfer/CompleteAccou
 import Dashboard from "pages/Dashboard/Dashboard";
 import Ecosystem from "pages/Ecosystem/Ecosystem";
 import { Exchange } from "pages/Exchange/Exchange";
+import Leaderboard from "pages/Leaderboard/Leaderboard";
+import Team from "pages/Team/Team";
+import TeamCreation from "pages/TeamCreation/TeamCreation";
 import Home from "pages/Home/Home";
 import NftWallet from "pages/NftWallet/NftWallet";
 import OrdersOverview from "pages/OrdersOverview/OrdersOverview";
@@ -41,6 +45,8 @@ import Modal from "components/Modal/Modal";
 import { cssTransition, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
+import "./App.scss";
+import "styles/Buttons.css";
 import "styles/Font.css";
 import "styles/Input.css";
 import "styles/Shared.css";
@@ -561,6 +567,15 @@ function FullApp() {
               </Route>
               <Route exact path="/referrals">
                 <Referrals pendingTxns={pendingTxns} connectWallet={connectWallet} setPendingTxns={setPendingTxns} />
+              </Route>
+              <Route exact path={getLeaderboardUrl()}>
+                <Leaderboard />
+              </Route>
+              <Route exact path={getTeamRegistrationUrl()}>
+                <TeamCreation pendingTxns={pendingTxns} connectWallet={connectWallet} setPendingTxns={setPendingTxns} />
+              </Route>
+              <Route exact path={getTeamUrl(":leaderAddress")}>
+                <Team pendingTxns={pendingTxns} setPendingTxns={setPendingTxns} />
               </Route>
               <Route exact path="/referrals/:account">
                 <Referrals pendingTxns={pendingTxns} connectWallet={connectWallet} setPendingTxns={setPendingTxns} />

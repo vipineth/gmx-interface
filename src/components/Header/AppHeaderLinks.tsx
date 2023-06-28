@@ -8,6 +8,7 @@ import "./Header.css";
 import { isHomeSite } from "lib/legacy";
 import ExternalLink from "components/ExternalLink/ExternalLink";
 import logoImg from "img/logo_GMX.svg";
+import { getLeaderboardUrl } from "domain/leaderboard/urls";
 
 type Props = {
   small?: boolean;
@@ -65,6 +66,15 @@ export function AppHeaderLinks({
           showRedirectModal={showRedirectModal}
         >
           <Trans>Referrals</Trans>
+        </HeaderLink>
+      </div>
+      <div className="App-header-link-container">
+        <HeaderLink
+          to={getLeaderboardUrl()}
+          redirectPopupTimestamp={redirectPopupTimestamp}
+          showRedirectModal={showRedirectModal}
+        >
+          <Trans>Leaderboards</Trans>
         </HeaderLink>
       </div>
       <div className="App-header-link-container">

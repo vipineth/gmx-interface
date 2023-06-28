@@ -247,8 +247,18 @@ msgstr ""
 msgid "Additionally, trigger orders are market orders and are not guaranteed to settle at the trigger price."
 msgstr ""
 
+#: src/components/Leaderboard/GeneralOpenLeaderboard.tsx
+#: src/components/Leaderboard/GeneralSettledLeaderboard.tsx
+#: src/components/Leaderboard/IndividualLeaderboard.tsx
+msgid "Address"
+msgstr ""
+
 #: src/components/AddressDropdown/AddressDropdown.tsx
 msgid "Address copied to your clipboard"
+msgstr ""
+
+#: src/pages/Leaderboard/Leaderboard.tsx
+msgid "Addresses trading statistics. Choose between general or competitions leaderboards."
 msgstr ""
 
 #: src/pages/Referrals/Referrals.tsx
@@ -1612,6 +1622,10 @@ msgstr ""
 msgid "Entry Price"
 msgstr ""
 
+#: src/components/Leaderboard/GeneralOpenLeaderboard.tsx
+msgid "Entry Price ($)"
+msgstr ""
+
 #: src/pages/Stake/StakeV2.js
 #: src/pages/Stake/StakeV2.js
 msgid "Escrowed GMX"
@@ -1952,6 +1966,10 @@ msgstr ""
 msgid "GMX | Decentralized Perpetual Exchange"
 msgstr ""
 
+#: src/pages/Leaderboard/Leaderboard.tsx
+msgid "General"
+msgstr ""
+
 #: src/components/Referrals/AddAffiliateCode.js
 msgid "Generate Referral Code"
 msgstr ""
@@ -2229,6 +2247,11 @@ msgstr ""
 msgid "Leaderboard for GMX traders"
 msgstr ""
 
+#: src/components/Header/AppHeaderLinks.tsx
+#: src/pages/Leaderboard/Leaderboard.tsx
+msgid "Leaderboards"
+msgstr ""
+
 #: src/components/Exchange/PositionEditor.js
 msgid "Leave at least {0} ETH for gas"
 msgstr ""
@@ -2354,6 +2377,10 @@ msgstr ""
 #: src/components/Synthetics/TradeBox/TradeBox.tsx
 #: src/components/Synthetics/TradeBox/TradeBox.tsx
 msgid "Liq. Price"
+msgstr ""
+
+#: src/components/Leaderboard/GeneralOpenLeaderboard.tsx
+msgid "Liq. Price ($)"
 msgstr ""
 
 #: src/components/Exchange/ExchangeTVChart.js
@@ -2697,6 +2724,10 @@ msgstr ""
 msgid "Media Kit"
 msgstr ""
 
+#: src/components/Leaderboard/TeamLeaderboard.tsx
+msgid "Members"
+msgstr ""
+
 #: src/App/App.js
 msgid "MetaMask"
 msgstr ""
@@ -2800,6 +2831,16 @@ msgstr ""
 
 #: src/pages/NftWallet/NftWallet.js
 msgid "NFT Wallet"
+msgstr ""
+
+#: src/components/Leaderboard/IndividualLeaderboard.tsx
+#: src/components/Leaderboard/TeamLeaderboard.tsx
+#~ msgid "Name"
+#~ msgstr ""
+
+#: src/components/Synthetics/ConfirmationBox/ConfirmationBox.tsx
+#: src/components/Synthetics/PositionSeller/PositionSeller.tsx
+msgid "Need to accept Price Impact"
 msgstr ""
 
 #: src/components/Synthetics/PositionItem/PositionItem.tsx
@@ -2910,6 +2951,10 @@ msgstr ""
 
 #: src/components/Synthetics/MarketCard/MarketCard.tsx
 msgid "Open Interest Balance"
+msgstr ""
+
+#: src/components/Leaderboard/TeamLeaderboard.tsx
+msgid "Open Positions"
 msgstr ""
 
 #: src/components/Exchange/SwapBox.js
@@ -3142,6 +3187,7 @@ msgstr ""
 #: src/components/Exchange/PositionSeller.js
 #: src/components/Exchange/PositionsList.js
 #: src/components/Exchange/TradeHistory.js
+#: src/components/Leaderboard/TeamLeaderboard.tsx
 #: src/components/Synthetics/ConfirmationBox/ConfirmationBox.tsx
 #: src/components/Synthetics/PositionItem/PositionItem.tsx
 #: src/components/Synthetics/PositionItem/PositionItem.tsx
@@ -3149,6 +3195,12 @@ msgstr ""
 #: src/components/Synthetics/TradeHistoryRow/LiquidationTooltip.tsx
 #: src/pages/Actions/Actions.js
 msgid "PnL"
+msgstr ""
+
+#: src/components/Leaderboard/GeneralOpenLeaderboard.tsx
+#: src/components/Leaderboard/GeneralSettledLeaderboard.tsx
+#: src/components/Leaderboard/IndividualLeaderboard.tsx
+msgid "PnL ($)"
 msgstr ""
 
 #: src/components/Exchange/NetValueTooltip.tsx
@@ -3364,6 +3416,13 @@ msgstr ""
 
 #: src/pages/Stake/StakeV2.js
 msgid "Purchase Insurance"
+msgstr ""
+
+#: src/components/Leaderboard/GeneralOpenLeaderboard.tsx
+#: src/components/Leaderboard/GeneralSettledLeaderboard.tsx
+#: src/components/Leaderboard/IndividualLeaderboard.tsx
+#: src/components/Leaderboard/TeamLeaderboard.tsx
+msgid "Rank"
 msgstr ""
 
 #: src/components/TokenCard/TokenCard.js
@@ -3828,6 +3887,10 @@ msgstr ""
 msgid "Size"
 msgstr ""
 
+#: src/components/Leaderboard/GeneralOpenLeaderboard.tsx
+msgid "Size ($)"
+msgstr ""
+
 #: src/App/App.js
 msgid "Slippage should be less than 5%"
 msgstr ""
@@ -4111,6 +4174,10 @@ msgstr ""
 msgid "Target Weight"
 msgstr ""
 
+#: src/components/Leaderboard/TeamLeaderboard.tsx
+msgid "Team Name"
+msgstr ""
+
 #: src/pages/Ecosystem/Ecosystem.js
 msgid "Telegram Group"
 msgstr ""
@@ -4303,6 +4370,10 @@ msgstr ""
 
 #: src/components/Glp/GlpSwap.js
 msgid "To reduce fees, select a different asset to receive."
+msgstr ""
+
+#: src/components/Leaderboard/GeneralOpenLeaderboard.tsx
+msgid "Token"
 msgstr ""
 
 #: src/pages/Dashboard/DashboardV2.js
@@ -4944,6 +5015,11 @@ msgstr ""
 
 #: src/components/Exchange/SwapBox.js
 msgid "When closing the position, you can select which token you would like to receive the profits in."
+msgstr ""
+
+#: src/components/Leaderboard/GeneralSettledLeaderboard.tsx
+#: src/components/Leaderboard/IndividualLeaderboard.tsx
+msgid "Win / Loss"
 msgstr ""
 
 #: src/components/Exchange/PositionEditor.js

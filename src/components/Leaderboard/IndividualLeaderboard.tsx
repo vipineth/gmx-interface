@@ -1,0 +1,130 @@
+import { Trans } from "@lingui/macro";
+import { useChainId } from "lib/chains";
+import { useDebounce } from "lib/useDebounce";
+import { useEffect, useState } from "react";
+import { FiSearch } from "react-icons/fi";
+import { shortenAddress, USD_DECIMALS } from "lib/legacy";
+import useIndividualLeaderboard from "domain/leaderboard/useIndividualLeaderboard";
+import { formatAmount } from "lib/numbers";
+import Pagination from "components/Pagination/Pagination";
+import Tab from "components/Tab/Tab";
+
+type Props = {
+  competitionIndex: number;
+};
+
+export function IndividualLeaderboard({ competitionIndex }: Props) {
+  const { chainId } = useChainId();
+  const perPage = 15;
+  const [page, setPage] = useState(1);
+  const [ranking, setRanking] = useState(0);
+  const { data: stats, loading } = useIndividualLeaderboard(chainId, "total");
+  const [search, setSearch] = useState("");
+  const debouncedSearch = useDebounce(search, 300);
+
+  useEffect(() => {
+    setPage(1);
+  }, [debouncedSearch]);
+
+  const filteredStats = () => {
+    return stats.filter((stat) => stat.account.indexOf(debouncedSearch.toLowerCase()) !== -1);
+  };
+
+  const displayedStats = () => {
+    return filteredStats().slice((page - 1) * perPage, page * perPage);
+  };
+
+  const pageCount = () => {
+    return Math.ceil(filteredStats().length / perPage);
+  };
+
+  const handleSearchInput = ({ target }) => {
+    setSearch(target.value.trim());
+  };
+
+  return (
+    <>
+      <div className="leaderboard-header">
+        <div className="input-wrapper">
+          <input
+            type="text"
+            placeholder="Search Address"
+            value={search}
+            onInput={handleSearchInput}
+            className="leaderboard-search-input text-input input-small"
+          />
+          <FiSearch className="input-logo" />
+        </div>
+        <Tab
+          className="Exchange-swap-order-type-tabs"
+          type="inline"
+          option={ranking}
+          options={[0, 1]}
+          onChange={(val) => setRanking(val)}
+          optionLabels={["Top PnL ($)", "Top PnL (%)"]}
+        />
+      </div>
+      <table className="Exchange-list large App-box">
+        <tbody>
+          <tr className="Exchange-list-header">
+            <th>
+              <Trans>Rank</Trans>
+            </th>
+            <th>
+              <Trans>Address</Trans>
+            </th>
+            <th>
+              <Trans>PnL ($)</Trans>
+            </th>
+            <th className="text-right">
+              <Trans>Win / Loss</Trans>
+            </th>
+          </tr>
+          {loading && (
+            <tr>
+              <td colSpan={5}>Loading...</td>
+            </tr>
+          )}
+          {!loading && filteredStats().length === 0 && (
+            <tr>
+              <td colSpan={9}>Not account found</td>
+            </tr>
+          )}
+          {displayedStats().map((stat) => (
+            <tr key={stat.rank}>
+              <td>#{stat.rank}</td>
+              <td>{shortenAddress(stat.account, 12)}</td>
+              <td>{formatAmount(stat.realizedPnl, USD_DECIMALS, 0, true)}</td>
+              <td className="text-right">
+                {stat.winCount} / {stat.lossCount}
+              </td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+      <div className="Exchange-list small">
+        {loading && <div className="Exchange-empty-positions-list-note App-card">Loading...</div>}
+        {!loading && filteredStats().length === 0 && (
+          <div className="Exchange-empty-positions-list-note App-card">No account found</div>
+        )}
+        {displayedStats().map((stat, i) => (
+          <div key={stat.rank} className="App-card">
+            <div className="App-card-title">
+              <span className="Exchange-list-title">
+                #{stat.rank} - {shortenAddress(stat.account, 12)}
+              </span>
+            </div>
+            <div className="App-card-divider"></div>
+            <div className="App-card-content">
+              <div className="App-card-row">
+                <div className="label">PnL</div>
+                <div>{formatAmount(stat.realizedPnl, USD_DECIMALS, 0, true)}</div>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+      <Pagination page={page} pageCount={pageCount()} onPageChange={(page) => setPage(page)} />
+    </>
+  );
+}
