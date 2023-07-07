@@ -1,0 +1,26 @@
+query GetAccountOpenPositions($pageSize: Int = 10, $offset: Int = 0) {
+#   accountPerfs(first: 5) {
+#     id
+#     timestamp
+#     period
+#     account
+#     losses
+#     maxCollateral
+#     totalPnl
+#     volume
+#     wins
+#   }
+  accountOpenPositions(first: $pageSize, offset: $offset) {
+    id
+    account
+    market
+    collateralToken
+    isLong
+    realizedPnl
+    size
+  }
+#   _meta {
+#     deployment
+#     hasIndexingErrors
+#   }
+}
