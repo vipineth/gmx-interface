@@ -1,26 +1,22 @@
-query GetAccountOpenPositions($pageSize: Int = 10, $offset: Int = 0) {
-#   accountPerfs(first: 5) {
-#     id
-#     timestamp
-#     period
-#     account
-#     losses
-#     maxCollateral
-#     totalPnl
-#     volume
-#     wins
-#   }
-  accountOpenPositions(first: $pageSize, offset: $offset) {
+query GetAccountOpenPositions(
+  $pageSize: Int,
+  $offset: Int = 0,
+  $orderBy: AccountOpenPosition_orderBy = sizeInUsd,
+  $orderDirection: OrderDirection = desc,
+) {
+  accountOpenPositions(
+    first: $pageSize,
+    offset: $offset,
+    orderBy: $orderBy,
+    orderDirection: $orderDirection
+  ) {
     id
     account
     market
     collateralToken
     isLong
     realizedPnl
-    size
+    sizeInTokens
+    sizeInUsd
   }
-#   _meta {
-#     deployment
-#     hasIndexingErrors
-#   }
 }

@@ -1,36 +1,34 @@
 import { Trans } from "@lingui/macro";
 import Pagination from "components/Pagination/Pagination";
-import { useGeneralOpenLeaderboard } from "domain/leaderboard/useGeneralLeaderboards";
-import { useChainId } from "lib/chains";
+// import { useGeneralOpenLeaderboard } from "domain/leaderboard/useGeneralLeaderboards";
+// import { useChainId } from "lib/chains";
 import { shortenAddress, USD_DECIMALS } from "lib/legacy";
 import { formatAmount } from "lib/numbers";
-import { useDebounce } from "lib/useDebounce";
+// import { useDebounce } from "lib/useDebounce";
 import { useState } from "react";
 import { FiSearch } from "react-icons/fi";
+import { useLeaderboardContext } from "./Context";
+import { BigNumber } from "ethers";
 
 export default function GeneralOpenLeaderboard() {
-  const { chainId } = useChainId();
-  const { data: stats, loading } = useGeneralOpenLeaderboard(chainId, 0);
+  // const { chainId } = useChainId();
+  // const { data: stats, loading } = useGeneralOpenLeaderboard(chainId, 0);
   const [page, setPage] = useState(1);
   const perPage = 15;
-  const [search, setSearch] = useState("");
-  const debouncedSearch = useDebounce(search, 300);
+  // const [search, setSearch] = useState("");
+  // const debouncedSearch = useDebounce(search, 300);
+  const { leaderPositions } = useLeaderboardContext();
 
-  const filteredStats = () => {
-    return stats.filter((stat) => stat.address.indexOf(debouncedSearch.toLowerCase()) !== -1);
-  };
+  // const filteredStats = () => {
+  //   return stats.filter((stat) => stat.address.indexOf(debouncedSearch.toLowerCase()) !== -1);
+  // };
 
-  const displayedStats = () => {
-    return filteredStats().slice((page - 1) * perPage, page * perPage);
-  };
+  const displayedStats = leaderPositions.slice((page - 1) * perPage, page * perPage);
+  const pageCount = leaderPositions.length / perPage;
 
-  const pageCount = () => {
-    return Math.ceil(filteredStats().length / perPage);
-  };
-
-  const handleSearchInput = ({ target }) => {
-    setSearch(target.value);
-  };
+  // const handleSearchInput = ({ target }) => {
+  //   setSearch(target.value);
+  // };
 
   return (
     <div>
@@ -40,8 +38,8 @@ export default function GeneralOpenLeaderboard() {
             type="text"
             placeholder="Search Address"
             className="leaderboard-search-input text-input input-small"
-            value={search}
-            onInput={handleSearchInput}
+            value={""}
+            onInput={() => {}}
           />
           <FiSearch className="input-logo" />
         </div>
@@ -71,7 +69,7 @@ export default function GeneralOpenLeaderboard() {
               <Trans>Liq. Price ($)</Trans>
             </th>
           </tr>
-          {loading && (
+          {/* {loading && (
             <tr>
               <td colSpan={5}>Loading...</td>
             </tr>
@@ -80,23 +78,21 @@ export default function GeneralOpenLeaderboard() {
             <tr>
               <td colSpan={9}>Not account found</td>
             </tr>
-          )}
-          {displayedStats().map((stat) => (
-            <tr key={stat.rank}>
-              <td>#{stat.rank}</td>
-              <td>{shortenAddress(stat.address, 12)}</td>
-              <td>{formatAmount(stat.realizedPnl, USD_DECIMALS, 0, true)}</td>
-              <td>
-                {stat.isLong ? "Long" : "Short"} {shortenAddress(stat.token, 12)}
-              </td>
-              <td>{formatAmount(stat.averagePrice, USD_DECIMALS, 2, true)}</td>
-              <td>{formatAmount(stat.sizeDelta, USD_DECIMALS, 0, true)}</td>
-              <td className="text-right">{formatAmount(stat.liquidationPrice, USD_DECIMALS, 2, true)}</td>
+          )} */}
+          {displayedStats.map(({ id, account, unrealizedPnl, isLong, market, sizeInUsd }, i) => (
+            <tr key={id}>
+              <td>{`#${i + 1}`}</td>
+              <td>{shortenAddress(account, 12)}</td>
+              <td>{formatAmount(unrealizedPnl, USD_DECIMALS, 0, true)}</td>
+              <td>{`${isLong ? "Long" : "Short"} ${shortenAddress(market, 12)}`}</td>
+              <td>{formatAmount(BigNumber.from(0), USD_DECIMALS, 2, true)}</td>
+              <td>{formatAmount(sizeInUsd, USD_DECIMALS, 0, true)}</td>
+              <td className="text-right">{formatAmount(BigNumber.from(0), USD_DECIMALS, 2, true)}</td>
             </tr>
           ))}
         </tbody>
       </table>
-      <Pagination page={page} pageCount={pageCount()} onPageChange={(p) => setPage(p)} />
+      <Pagination page={page} pageCount={pageCount} onPageChange={(p) => setPage(p)} />
     </div>
   );
 }
