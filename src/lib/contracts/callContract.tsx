@@ -64,6 +64,10 @@ export async function callContract(
       const pendingTxn = {
         hash: res.hash,
         message,
+        contract,
+        method,
+        params,
+        opts: txnOpts,
       };
       opts.setPendingTxns((pendingTxns) => [...pendingTxns, pendingTxn]);
     }

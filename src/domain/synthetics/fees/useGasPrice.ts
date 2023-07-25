@@ -22,19 +22,19 @@ export function useGasPrice(chainId: number) {
         try {
           let gasPrice = await provider.getGasPrice();
 
-          if (settings.shouldUseExecutionFeeBuffer) {
-            const feeData = await provider.getFeeData();
+          // if (settings.shouldUseExecutionFeeBuffer) {
+          //   const feeData = await provider.getFeeData();
 
-            // the wallet provider might not return maxPriorityFeePerGas in feeData
-            // in which case we should fallback to the usual getGasPrice flow handled below
-            if (feeData && feeData.maxPriorityFeePerGas) {
-              gasPrice = gasPrice.add(feeData.maxPriorityFeePerGas);
-            }
+          //   // the wallet provider might not return maxPriorityFeePerGas in feeData
+          //   // in which case we should fallback to the usual getGasPrice flow handled below
+          //   if (feeData && feeData.maxPriorityFeePerGas) {
+          //     gasPrice = gasPrice.add(feeData.maxPriorityFeePerGas);
+          //   }
 
-            const buffer = settings.executionFeeBufferBps || DEFAULT_EXECUTION_FEE_BUFFER_BPS[chainId];
+          //   const buffer = settings.executionFeeBufferBps || DEFAULT_EXECUTION_FEE_BUFFER_BPS[chainId];
 
-            gasPrice = gasPrice.mul(BASIS_POINTS_DIVISOR + buffer).div(BASIS_POINTS_DIVISOR);
-          }
+          //   gasPrice = gasPrice.mul(BASIS_POINTS_DIVISOR + buffer).div(BASIS_POINTS_DIVISOR);
+          // }
 
           resolve(gasPrice);
         } catch (e) {

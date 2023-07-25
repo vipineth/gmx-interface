@@ -394,6 +394,12 @@ function FullApp() {
         const receipt = await library.getTransactionReceipt(pendingTxn.hash);
         if (receipt) {
           if (receipt.status === 0) {
+            const error = await pendingTxn.contract.callStatic[pendingTxn.method](...pendingTxn.params, {
+              value: pendingTxn.opts.value,
+            }).catch((e) => Promise.resolve(e));
+
+            console.log("braa", pendingTxn.method, pendingTxn.params, error);
+
             const txUrl = getExplorerUrl(chainId) + "tx/" + pendingTxn.hash;
             helperToast.error(
               <div>

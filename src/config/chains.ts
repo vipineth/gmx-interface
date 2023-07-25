@@ -165,7 +165,7 @@ export const RPC_PROVIDERS = {
     // "https://endpoints.omniatech.io/v1/arbitrum/goerli/public",
     // "https://arbitrum-goerli.public.blastapi.io",
   ],
-  [AVALANCHE]: ["https://api.avax.network/ext/bc/C/rpc"],
+  [AVALANCHE]: ["https://rpc.ankr.com/avalanche"],
   [AVALANCHE_FUJI]: ["https://rpc.ankr.com/avalanche_fuji"],
 };
 
