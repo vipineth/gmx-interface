@@ -1,30 +1,7 @@
 import { getOracleKeeperUrl } from "config/oracleKeeper";
-import { getNormalizedTokenSymbol, getTokenBySymbol } from "config/tokens";
+import { getNormalizedTokenSymbol } from "config/tokens";
 import { timezoneOffset } from "domain/prices";
 import { Bar } from "domain/tradingview/types";
-import { TokenPrices } from "./types";
-import { parseOraclePrice } from "./utils";
-
-export async function fetchOracleRecentPrice(chainId: number, tokenSymbol: string): Promise<TokenPrices> {
-  const url = getOracleKeeperUrl(chainId, "/prices/tickers");
-
-  tokenSymbol = getNormalizedTokenSymbol(tokenSymbol);
-
-  const token = getTokenBySymbol(chainId, tokenSymbol);
-
-  const res = await fetch(url).then((res) => res.json());
-
-  const priceItem = res.find((item) => item.tokenSymbol === tokenSymbol);
-
-  if (!priceItem) {
-    throw new Error(`no price for ${tokenSymbol} found`);
-  }
-
-  const minPrice = parseOraclePrice(priceItem.minPrice, token.decimals, priceItem.oracleDecimals);
-  const maxPrice = parseOraclePrice(priceItem.maxPrice, token.decimals, priceItem.oracleDecimals);
-
-  return { minPrice, maxPrice };
-}
 
 export async function fetchLastOracleCandles(
   chainId: number,
