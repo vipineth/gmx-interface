@@ -204,7 +204,6 @@ export function mockMarketsInfoData(
       borrowingExponentFactorShort: BigNumber.from(0),
       fundingFactor: BigNumber.from(0),
       fundingExponentFactor: BigNumber.from(0),
-      fundingIncreaseFactorPerSecond: BigNumber.from(0),
 
       totalBorrowingFees: BigNumber.from(0),
       minCollateralFactor: BigNumber.from(0),
