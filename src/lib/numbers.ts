@@ -191,6 +191,7 @@ export function formatDeltaUsd(
   } else if (opts.showPlusForZero) {
     sign = "+";
   }
+
   const exceedingInfo = getLimitedDisplay(deltaUsd, USD_DECIMALS);
   const percentageStr = percentage ? ` (${sign}${formatPercentage(percentage.abs())})` : "";
   const deltaUsdStr = formatAmount(exceedingInfo.value, USD_DECIMALS, 2, true);
