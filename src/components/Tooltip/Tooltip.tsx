@@ -1,5 +1,5 @@
 import cx from "classnames";
-import { useCallback, useState, useRef, MouseEvent } from "react";
+import { useCallback, useState, useRef, ReactNode } from "react";
 import { IS_TOUCH } from "config/env";
 import "./Tooltip.scss";
 
@@ -16,9 +16,9 @@ export type TooltipPosition =
   | "center-top";
 
 type Props = {
-  handle: React.ReactNode;
-  renderContent: () => React.ReactNode;
-  position?: TooltipPosition;
+  handle: ReactNode;
+  renderContent: () => ReactNode;
+  position?: string;
   trigger?: string;
   className?: string;
   disableHandleStyle?: boolean;
@@ -73,7 +73,7 @@ export default function Tooltip(props: Props) {
     }
   }, [setVisible, intervalCloseRef]);
 
-  const onHandleClick = useCallback((event: MouseEvent) => {
+  const onHandleClick = useCallback((event) => {
     event.preventDefault();
   }, []);
 

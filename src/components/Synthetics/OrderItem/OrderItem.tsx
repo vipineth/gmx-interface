@@ -115,6 +115,40 @@ export function OrderItem(p: Props) {
                   value={<div className="debug-key muted">{p.order.minOutputAmount.toString()}</div>}
                   showDollar={false}
                 />
+                <StatsTooltipRow label={t`Collateral`} value={getCollateralText()} showDollar={false} />
+
+                {isCollateralSwap && (
+                  <div className="OrderItem-tooltip-row">
+                    <Trans>
+                      {formatTokenAmount(
+                        p.order.initialCollateralDeltaAmount,
+                        p.order.initialCollateralToken.decimals,
+                        p.order.initialCollateralToken.symbol
+                      )}{" "}
+                      will be swapped to {p.order.targetCollateralToken.symbol} on order execution.
+                    </Trans>
+                  </div>
+                )}
+
+                {showDebugValues && (
+                  <div className="OrderItem-tooltip-row">
+                    <StatsTooltipRow
+                      label={"Key"}
+                      value={<div className="debug-key muted">{positionOrder.key}</div>}
+                      showDollar={false}
+                    />
+                  </div>
+                )}
+
+                {p.order.errors.length ? (
+                  <>
+                    {p.order.errors.map((error) => (
+                      <div className="OrderItem-tooltip-row" key={error.msg}>
+                        <span className={error!.level === "error" ? "negative" : "warning"}>{error.msg}</span>
+                      </div>
+                    ))}
+                  </>
+                ) : null}
               </>
             )}
           />
