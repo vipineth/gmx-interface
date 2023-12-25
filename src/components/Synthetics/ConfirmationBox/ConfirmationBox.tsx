@@ -72,9 +72,9 @@ import { SubaccountNavigationButton } from "components/SubaccountNavigationButto
 import TooltipWithPortal from "components/Tooltip/TooltipWithPortal";
 import { useSettings } from "context/SettingsContext/SettingsContextProvider";
 import {
-  useSubaccountCancelOrdersDetailsMessage,
   useIsLastSubaccountAction,
   useSubaccount,
+  useSubaccountCancelOrdersDetailsMessage,
 } from "context/SubaccountContext/SubaccountContext";
 import { AvailableMarketsOptions } from "domain/synthetics/trade/useAvailableMarketsOptions";
 import { usePriceImpactWarningState } from "domain/synthetics/trade/usePriceImpactWarningState";
@@ -89,6 +89,7 @@ import {
   formatUsd,
 } from "lib/numbers";
 import { usePrevious } from "lib/usePrevious";
+import { getPositiveOrNegativeClass } from "lib/utils";
 import useWallet from "lib/wallets/useWallet";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useKey, useLatest } from "react-use";
@@ -1186,10 +1187,7 @@ export function ConfirmationBox(p: Props) {
                             : "0.00$"
                         }
                         showDollar={false}
-                        className={cx({
-                          "text-red": fees?.payTotalFees?.deltaUsd.lt(0),
-                          "text-green": fees?.payTotalFees?.deltaUsd.gt(0),
-                        })}
+                        className={getPositiveOrNegativeClass(fees?.payTotalFees?.deltaUsd)}
                       />
                       <div className="Tooltip-divider" />
                       <StatsTooltipRow
