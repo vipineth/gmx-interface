@@ -1,13 +1,15 @@
 import { t, Trans } from "@lingui/macro";
-import Modal from "components/Modal/Modal";
-import { formatDeltaUsd, formatUsd } from "lib/numbers";
 import Button from "components/Button/Button";
+import Modal from "components/Modal/Modal";
 import { getTotalAccruedFundingUsd } from "domain/synthetics/markets";
 import { PositionsInfoData } from "domain/synthetics/positions";
+import { formatDeltaUsd, formatUsd } from "lib/numbers";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { SettleAccruedFundingFeeRow } from "./SettleAccruedFundingFeeRow";
 
+import { SubaccountNavigationButton } from "components/SubaccountNavigationButton/SubaccountNavigationButton";
 import Tooltip from "components/Tooltip/Tooltip";
+import { useSubaccount } from "context/SubaccountContext/SubaccountContext";
 import { useSyntheticsEvents } from "context/SyntheticsEvents";
 import { useUserReferralInfo } from "domain/referrals";
 import {
@@ -22,9 +24,6 @@ import { BigNumber } from "ethers";
 import { useChainId } from "lib/chains";
 import useWallet from "lib/wallets/useWallet";
 import "./SettleAccruedFundingFeeModal.scss";
-import { useSubaccount } from "context/SubaccountContext/SubaccountContext";
-import { SubaccountNavigationButton } from "components/SubaccountNavigationButton/SubaccountNavigationButton";
-import { getPositiveOrNegativeClass } from "lib/utils";
 
 type Props = {
   allowedSlippage: number;
@@ -173,9 +172,7 @@ export function SettleAccruedFundingFeeModal({
       label={t`Confirm Settle`}
     >
       <div className="ConfirmationBox-main">
-        <div className="text-center">
-          Settle <span className={getPositiveOrNegativeClass(total)}>{totalStr}</span>
-        </div>
+        <div className="text-center">Settle {totalStr}</div>
       </div>
       <div className="App-card-divider ClaimModal-divider FeeModal-divider ClaimSettleModal-divider" />
       <SubaccountNavigationButton executionFee={executionFee} closeConfirmationBox={onClose} />
@@ -184,7 +181,7 @@ export function SettleAccruedFundingFeeModal({
           <div className="ClaimSettleModal-alert">
             <Trans>
               Consider selecting only Positions where the accrued Funding Fees exceed the gas spent to Settle, which is
-              around <span className="text-red">-{formatUsd(feeUsd)}</span> per each selected Position.
+              around {formatUsd(feeUsd)} per each selected Position.
             </Trans>
           </div>
 
