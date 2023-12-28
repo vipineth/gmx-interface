@@ -181,7 +181,6 @@ export function GmList({
                                   token={token}
                                   marketsInfoData={marketsInfoData}
                                   tokensData={tokensData}
-                                  position="left"
                                 />
                               </div>
                             </div>
@@ -264,7 +263,7 @@ export function GmList({
           {!hideTitle && <PageTitle title={t`GM Pools`} />}
 
           <div className="token-grid">
-            {sortedMarketsByIndexToken.map((token) => {
+            {sortedMarketsByIndexToken.map((token, index) => {
               const apr = marketsTokensAPRData?.[token.address];
               const incentiveApr = marketsTokensIncentiveAprData?.[token.address];
               const marketEarnings = getByKey(userEarnings?.byMarketAddress, token?.address);
@@ -302,7 +301,7 @@ export function GmList({
                           token={token}
                           tokensData={tokensData}
                           marketsInfoData={marketsInfoData}
-                          position="left"
+                          position={index % 2 !== 0 ? "left" : "right"}
                         />
                       </div>
                     </div>
