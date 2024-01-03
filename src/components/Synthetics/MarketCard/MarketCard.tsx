@@ -21,7 +21,7 @@ import { ShareBar } from "components/ShareBar/ShareBar";
 import { getBorrowingFactorPerPeriod, getFundingFactorPerPeriod } from "domain/synthetics/fees";
 import { useCallback, useMemo } from "react";
 import "./MarketCard.scss";
-import { getPositiveOrNegativeClass } from "lib/utils";
+import { getPlusOrMinusSymbol, getPositiveOrNegativeClass } from "lib/utils";
 
 export type Props = {
   marketInfo?: MarketInfo;
@@ -76,7 +76,7 @@ export function MarketCard({ marketInfo, allowedSlippage, isLong }: Props) {
       <Trans>
         Long positions {isLongPositive ? t`receive` : t`pay`} a Funding Fee of{" "}
         <span className={getPositiveOrNegativeClass(fundingRateLong)}>
-          {isLongPositive ? "+" : "-"}
+          {getPlusOrMinusSymbol(fundingRateLong)}
           {formatAmount(fundingRateLong.abs(), 30, 4)}%
         </span>{" "}
         per hour.
@@ -88,7 +88,7 @@ export function MarketCard({ marketInfo, allowedSlippage, isLong }: Props) {
       <Trans>
         Short positions {isShortPositive ? t`receive` : t`pay`} a Funding Fee of{" "}
         <span className={getPositiveOrNegativeClass(fundingRateShort)}>
-          {isShortPositive ? "+" : "-"}
+          {getPlusOrMinusSymbol(fundingRateShort)}
           {formatAmount(fundingRateShort.abs(), 30, 4)}%
         </span>{" "}
         per hour.
@@ -195,7 +195,9 @@ export function MarketCard({ marketInfo, allowedSlippage, isLong }: Props) {
             <Tooltip
               className="al-swap"
               handle={
-                fundingRate ? `${fundingRate.gt(0) ? "+" : "-"}${formatAmount(fundingRate.abs(), 30, 4)}% / 1h` : "..."
+                fundingRate
+                  ? `${getPlusOrMinusSymbol(fundingRate)}${formatAmount(fundingRate.abs(), 30, 4)}% / 1h`
+                  : "..."
               }
               position="right-bottom"
               renderContent={renderFundingFeeTooltipContent}
