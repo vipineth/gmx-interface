@@ -40,7 +40,7 @@ export type LocalStorageKey = string | number | boolean | null | undefined;
 
 export function useLocalStorageSerializeKey<T>(
   key: LocalStorageKey | LocalStorageKey[],
-  initialValue: T,
+  value: T,
   opts?: {
     raw: boolean;
     serializer: (val: T) => string;
@@ -49,5 +49,5 @@ export function useLocalStorageSerializeKey<T>(
 ) {
   key = JSON.stringify(key);
 
-  return useLocalStorage<T>(key, initialValue, opts);
+  return useLocalStorage<T>(key, value, opts);
 }
