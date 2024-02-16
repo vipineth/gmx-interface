@@ -94,7 +94,7 @@ export const selectPositionSellerDecreaseAmounts = createEnhancedSelector((q) =>
   return q(selector);
 });
 
-export const selectPositionSellerDecreaseAmountsWithKeepLeverage = createEnhancedSelector((q) => {
+const selectPositionSellerDecreaseAmountsWithKeepLeverage = createEnhancedSelector((q) => {
   const decreaseAmountArgs = q(selectPositionSellerDecreaseAmountArgs);
 
   if (!decreaseAmountArgs) return undefined;
@@ -123,9 +123,9 @@ export const selectPositionSellerLeverageDisabledByCollateral = createEnhancedSe
 
   if (!position) return false;
 
-  // const keepLeverageRaw = q(selectPositionSellerKeepLeverageRaw);
+  const keepLeverageRaw = q(selectPositionSellerKeepLeverageRaw);
 
-  // if (!keepLeverageRaw) return false;
+  if (!keepLeverageRaw) return false;
 
   const minCollateralFactor = q(makeSelectMinCollateralFactorForPosition(position.key));
 

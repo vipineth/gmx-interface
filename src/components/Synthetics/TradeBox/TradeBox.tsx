@@ -29,8 +29,8 @@ import {
   useTradeboxExistingOrder,
   useTradeboxIncreasePositionAmounts,
   useTradeboxLeverage,
-  useTradeboxNextPositionValuesForDecrease,
-  useTradeboxNextPositionValuesForIncrease,
+  useTradeboxNextLeverageWithoutPnl,
+  useTradeboxNextPositionValues,
   useTradeboxSelectedPosition,
   useTradeboxSelectedTriggerAcceptablePriceImpactBps,
   useTradeboxState,
@@ -248,15 +248,17 @@ export function TradeBox(p: Props) {
   const swapAmounts = useTradeboxSwapAmounts();
   const increaseAmounts = useTradeboxIncreasePositionAmounts();
   const decreaseAmounts = useTradeboxDecreasePositionAmounts();
-  const nextPositionValuesForIncrease = useTradeboxNextPositionValuesForIncrease();
-  const nextPositionValuesForDecrease = useTradeboxNextPositionValuesForDecrease();
   const selectedPosition = useTradeboxSelectedPosition();
   const existingOrder = useTradeboxExistingOrder();
   const leverage = useTradeboxLeverage();
+  const nextLeverageWithoutPnl = useTradeboxNextLeverageWithoutPnl();
+  const nextPositionValues = useTradeboxNextPositionValues();
 
-  const nextPositionValues = useMemo(() => {
-    return tradeFlags.isIncrease ? nextPositionValuesForIncrease : nextPositionValuesForDecrease;
-  }, [nextPositionValuesForDecrease, nextPositionValuesForIncrease, tradeFlags.isIncrease]);
+  // console.table({
+  //   leverage: leverage?.toString(),
+  //   nextLeverageWithoutPnl: nextLeverageWithoutPnl?.toString(),
+  //   nextLeverage: nextPositionValues?.nextLeverage?.toString(),
+  // });
 
   const { fees, feesType, executionFee } = useMemo(() => {
     if (!gasLimits || !gasPrice || !tokensData) {
@@ -491,7 +493,7 @@ export function TradeBox(p: Props) {
         });
 
         if (nextPositionValues.nextLeverage) {
-          const [error] = validateMaxLeverage(
+          const error = validateMaxLeverage(
             nextPositionValues.nextLeverage,
             marketInfo,
             isLong,
@@ -592,7 +594,8 @@ export function TradeBox(p: Props) {
         triggerPrice,
         priceImpactWarning: priceImpactWarningState,
         isLimit,
-        nextPositionValues: nextPositionValuesForIncrease,
+        nextPositionValues,
+        nextLeverageWithoutPnl,
       });
     } else if (isTrigger) {
       tradeError = getDecreaseError({
@@ -604,7 +607,7 @@ export function TradeBox(p: Props) {
         existingPosition: selectedPosition,
         isContractAccount: false,
         receiveToken: selectedPosition?.collateralToken,
-        nextPositionValues: nextPositionValuesForDecrease,
+        nextPositionValues: nextPositionValues,
         isLong,
         isTrigger: true,
         minCollateralUsd,
@@ -682,10 +685,10 @@ export function TradeBox(p: Props) {
     isLong,
     markPrice,
     triggerPrice,
-    nextPositionValuesForIncrease,
+    nextPositionValues,
+    nextLeverageWithoutPnl,
     closeSizeUsd,
     decreaseAmounts?.sizeDeltaUsd,
-    nextPositionValuesForDecrease,
     stage,
     fixedTriggerThresholdType,
     isLeverageEnabled,

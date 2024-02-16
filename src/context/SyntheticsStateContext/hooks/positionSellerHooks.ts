@@ -1,7 +1,6 @@
 import {
   selectPositionSeller,
   selectPositionSellerDecreaseAmounts,
-  selectPositionSellerDecreaseAmountsWithKeepLeverage,
   selectPositionSellerKeepLeverage,
   selectPositionSellerLeverageDisabledByCollateral,
   selectPositionSellerNextPositionValuesForDecrease,
@@ -19,8 +18,6 @@ export const usePositionSellerNextPositionValuesForDecrease = () =>
 export const usePositionSellerNextPositionValuesForDecreaseWithoutKeepLeverage = () =>
   useSelector(selectPositionSellerNextPositionValuesForDecreaseWithoutKeepLeverage);
 export const usePositionSellerDecreaseAmount = () => useSelector(selectPositionSellerDecreaseAmounts);
-export const usePositionSellerDecreaseAmountWithKeepLeverage = () =>
-  useSelector(selectPositionSellerDecreaseAmountsWithKeepLeverage);
 
 export const usePositionSellerKeepLeverage = () => useSelector(selectPositionSellerKeepLeverage);
 export const usePositionSellerLeverageDisabledByCollateral = () =>

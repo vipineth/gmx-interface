@@ -12,11 +12,10 @@ import { GmSwapFees, NextPositionValues, SwapPathStats, TradeFees, TriggerThresh
 import { getMinCollateralUsdForLeverage } from "./decrease";
 import { PriceImpactWarningState } from "../usePriceImpactWarningState";
 
-export type ValidationTooltipName = "maxLeverage";
 export type ValidationResult =
   | [errorMessage: undefined]
   | [errorMessage: string]
-  | [errorMessage: string, tooltipName: "maxLeverage", recommendedValue: BigNumber];
+  | [errorMessage: string, tooltipName: "maxLeverage"];
 
 export function getCommonError(p: { chainId: number; isConnected: boolean; hasOutdatedUi: boolean }): ValidationResult {
   const { chainId, isConnected, hasOutdatedUi } = p;
@@ -133,6 +132,7 @@ export function getIncreaseError(p: {
   collateralUsd: BigNumber | undefined;
   sizeDeltaUsd: BigNumber | undefined;
   nextPositionValues: NextPositionValues | undefined;
+  nextLeverageWithoutPnl: BigNumber | undefined;
   existingPosition: PositionInfo | undefined;
   fees: TradeFees | undefined;
   markPrice: BigNumber | undefined;
@@ -167,6 +167,7 @@ export function getIncreaseError(p: {
     triggerPrice,
     isLimit,
     nextPositionValues,
+    nextLeverageWithoutPnl,
   } = p;
 
   if (!marketInfo || !indexToken) {
@@ -254,7 +255,7 @@ export function getIncreaseError(p: {
     }
   }
 
-  if (!nextPositionValues?.nextLeverage || nextPositionValues?.nextLeverage.gt(MAX_ALLOWED_LEVERAGE)) {
+  if (!nextLeverageWithoutPnl || nextLeverageWithoutPnl.gt(MAX_ALLOWED_LEVERAGE)) {
     return [t`Max leverage: ${(MAX_ALLOWED_LEVERAGE / BASIS_POINTS_DIVISOR).toFixed(1)}x`];
   }
 
@@ -262,16 +263,11 @@ export function getIncreaseError(p: {
     return [t`Price Impact not yet acknowledged`];
   }
 
-  if (nextPositionValues.nextLeverage) {
-    const [maxLeverageError, maxLeverage] = validateMaxLeverage(
-      nextPositionValues.nextLeverage,
-      marketInfo,
-      isLong,
-      sizeDeltaUsd
-    );
+  if (nextLeverageWithoutPnl) {
+    const maxLeverageError = validateMaxLeverage(nextLeverageWithoutPnl, marketInfo, isLong, sizeDeltaUsd);
 
-    if (maxLeverageError && maxLeverage) {
-      return [t`Max. Leverage exceeded`, "maxLeverage", maxLeverage];
+    if (maxLeverageError) {
+      return [t`Max. Leverage exceeded`, "maxLeverage"];
     }
   }
 
@@ -283,7 +279,7 @@ export function validateMaxLeverage(
   marketInfo: MarketInfo,
   isLong: boolean,
   sizeDeltaUsd: BigNumber
-): [boolean, BigNumber | undefined] {
+): boolean {
   const openInterest = getOpenInterestUsd(marketInfo, isLong);
   const minCollateralFactorMultiplier = isLong
     ? marketInfo.minCollateralFactorForOpenInterestLong
@@ -297,11 +293,7 @@ export function validateMaxLeverage(
 
   const maxLeverage = PRECISION.mul(BASIS_POINTS_DIVISOR).div(minCollateralFactor);
 
-  if (nextLeverage.gt(maxLeverage)) {
-    return [true, maxLeverage];
-  }
-
-  return [false, undefined];
+  return nextLeverage.gt(maxLeverage);
 }
 
 export function getDecreaseError(p: {
