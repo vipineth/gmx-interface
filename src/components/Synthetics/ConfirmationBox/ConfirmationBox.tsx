@@ -723,6 +723,7 @@ export function ConfirmationBox(p: Props) {
         closeConfirmationBox={onClose}
         isNativeToken={Boolean(fromToken?.isNative)}
         tradeFlags={tradeFlags}
+        requiredActions={1 + sltpAmounts.length}
       />
     );
   }
