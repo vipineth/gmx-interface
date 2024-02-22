@@ -14,6 +14,7 @@ import {
   DEFAULT_SLIPPAGE_AMOUNT,
   EXCESSIVE_SLIPPAGE_AMOUNT,
 } from "config/factors";
+import { ExchangeInfo } from "components/Exchange/ExchangeInfo";
 import { SLIPPAGE_BPS_KEY } from "config/localStorage";
 import { getPriceDecimals, getToken, getWrappedToken } from "config/tokens";
 import { TRIGGER_PREFIX_ABOVE, TRIGGER_PREFIX_BELOW } from "config/ui";
@@ -660,100 +661,116 @@ export default function ConfirmationBox(props) {
               </Checkbox>
             </div>
           )}
-          {orderOption === LIMIT && renderAvailableLiquidity()}
-          <ExchangeInfoRow label={t`Leverage`}>
-            {hasExistingPosition && toAmount && toAmount.gt(0) && (
-              <div className="inline-block muted">
-                {formatAmount(existingPosition.leverage, 4, 2)}x
-                <BsArrowRight className="transition-arrow" />
-              </div>
-            )}
-            {toAmount && leverage && leverage.gt(0) && `${formatAmount(leverage, 4, 2)}x`}
-            {!toAmount && leverage && leverage.gt(0) && `-`}
-            {leverage && leverage.eq(0) && `-`}
-          </ExchangeInfoRow>
-          {isMarketOrder && renderAllowedSlippage(setAllowedSlippage, savedSlippageAmount, allowedSlippage)}
-          {showCollateralSpread && (
-            <ExchangeInfoRow label={t`Collateral Spread`} isWarning={collateralSpreadInfo.isHigh} isTop>
-              {formatAmount(collateralSpreadInfo.value.mul(100), USD_DECIMALS, 2, true)}%
-            </ExchangeInfoRow>
-          )}
-          {isMarketOrder && (
-            <ExchangeInfoRow label={t`Entry Price`}>
-              {hasExistingPosition && toAmount && toAmount.gt(0) && (
-                <div className="inline-block muted">
-                  ${formatAmount(existingPosition.averagePrice, USD_DECIMALS, existingPositionPriceDecimal, true)}
-                  <BsArrowRight className="transition-arrow" />
+          <ExchangeInfo>
+            <ExchangeInfo.Group>
+              {orderOption === LIMIT && renderAvailableLiquidity()}
+              <ExchangeInfoRow label={t`Leverage`}>
+                {hasExistingPosition && toAmount && toAmount.gt(0) && (
+                  <div className="inline-block muted">
+                    {formatAmount(existingPosition.leverage, 4, 2)}x
+                    <BsArrowRight className="transition-arrow" />
+                  </div>
+                )}
+                {toAmount && leverage && leverage.gt(0) && `${formatAmount(leverage, 4, 2)}x`}
+                {!toAmount && leverage && leverage.gt(0) && `-`}
+                {leverage && leverage.eq(0) && `-`}
+              </ExchangeInfoRow>
+              {isMarketOrder && renderAllowedSlippage(setAllowedSlippage, savedSlippageAmount, allowedSlippage)}
+            </ExchangeInfo.Group>
+
+            <ExchangeInfo.Group>
+              {showCollateralSpread && (
+                <ExchangeInfoRow label={t`Collateral Spread`} isWarning={collateralSpreadInfo.isHigh}>
+                  {formatAmount(collateralSpreadInfo.value.mul(100), USD_DECIMALS, 2, true)}%
+                </ExchangeInfoRow>
+              )}
+              {isMarketOrder && (
+                <ExchangeInfoRow label={t`Entry Price`}>
+                  {hasExistingPosition && toAmount && toAmount.gt(0) && (
+                    <div className="inline-block muted">
+                      ${formatAmount(existingPosition.averagePrice, USD_DECIMALS, existingPositionPriceDecimal, true)}
+                      <BsArrowRight className="transition-arrow" />
+                    </div>
+                  )}
+                  {nextAveragePrice &&
+                    `$${formatAmount(nextAveragePrice, USD_DECIMALS, existingPositionPriceDecimal, true)}`}
+                  {!nextAveragePrice && `-`}
+                </ExchangeInfoRow>
+              )}
+            </ExchangeInfo.Group>
+
+            <ExchangeInfo.Group>
+              {!isMarketOrder && (
+                <ExchangeInfoRow label={t`Mark Price`}>
+                  ${formatAmount(entryMarkPrice, USD_DECIMALS, toTokenPriceDecimal, true)}
+                </ExchangeInfoRow>
+              )}
+              {!isMarketOrder && (
+                <ExchangeInfoRow label={t`Limit Price`}>
+                  ${formatAmount(triggerPriceUsd, USD_DECIMALS, toTokenPriceDecimal, true)}
+                </ExchangeInfoRow>
+              )}
+              <ExchangeInfoRow label={t`Liq. Price`}>
+                {hasExistingPosition && toAmount && toAmount.gt(0) && (
+                  <div className="inline-block muted">
+                    ${formatAmount(existingLiquidationPrice, USD_DECIMALS, existingPositionPriceDecimal, true)}
+                    <BsArrowRight className="transition-arrow" />
+                  </div>
+                )}
+                {toAmount &&
+                  displayLiquidationPrice &&
+                  `$${formatAmount(displayLiquidationPrice, USD_DECIMALS, toTokenPriceDecimal, true)}`}
+                {!toAmount && displayLiquidationPrice && `-`}
+                {!displayLiquidationPrice && `-`}
+              </ExchangeInfoRow>
+            </ExchangeInfo.Group>
+
+            <ExchangeInfo.Group>
+              <ExchangeInfoRow label={t`Collateral (${collateralToken.symbol})`}>
+                <Tooltip
+                  handle={`$${formatAmount(collateralAfterFees, USD_DECIMALS, 2, true)}`}
+                  position="right-top"
+                  renderContent={() => {
+                    return (
+                      <>
+                        <Trans>Your position's collateral after deducting fees:</Trans>
+                        <br />
+                        <br />
+                        <StatsTooltipRow
+                          label={t`Pay Amount`}
+                          value={formatAmount(fromUsdMin, USD_DECIMALS, 2, true)}
+                        />
+                        <StatsTooltipRow label={t`Fees`} value={formatAmount(feesUsd, USD_DECIMALS, 2, true)} />
+                        <div className="Tooltip-divider" />
+                        <StatsTooltipRow
+                          label={t`Collateral`}
+                          value={formatAmount(collateralAfterFees, USD_DECIMALS, 2, true)}
+                        />
+                      </>
+                    );
+                  }}
+                />
+              </ExchangeInfoRow>
+              <ExchangeInfoRow label={t`Fees`}>
+                <FeesTooltip
+                  fundingRate={fundingRate}
+                  executionFees={currentExecutionFees}
+                  positionFee={positionFee}
+                  swapFee={swapFees}
+                />
+              </ExchangeInfoRow>
+
+              {decreaseOrdersThatWillBeExecuted.length > 0 && (
+                <div className="PositionEditor-allow-higher-slippage">
+                  <Checkbox isChecked={isTriggerWarningAccepted} setIsChecked={setIsTriggerWarningAccepted}>
+                    <span className="muted font-sm">
+                      <Trans>I am aware of the trigger orders</Trans>
+                    </span>
+                  </Checkbox>
                 </div>
               )}
-              {nextAveragePrice &&
-                `$${formatAmount(nextAveragePrice, USD_DECIMALS, existingPositionPriceDecimal, true)}`}
-              {!nextAveragePrice && `-`}
-            </ExchangeInfoRow>
-          )}
-          {!isMarketOrder && (
-            <ExchangeInfoRow label={t`Mark Price`} isTop={true}>
-              ${formatAmount(entryMarkPrice, USD_DECIMALS, toTokenPriceDecimal, true)}
-            </ExchangeInfoRow>
-          )}
-          {!isMarketOrder && (
-            <ExchangeInfoRow label={t`Limit Price`}>
-              ${formatAmount(triggerPriceUsd, USD_DECIMALS, toTokenPriceDecimal, true)}
-            </ExchangeInfoRow>
-          )}
-          <ExchangeInfoRow label={t`Liq. Price`}>
-            {hasExistingPosition && toAmount && toAmount.gt(0) && (
-              <div className="inline-block muted">
-                ${formatAmount(existingLiquidationPrice, USD_DECIMALS, existingPositionPriceDecimal, true)}
-                <BsArrowRight className="transition-arrow" />
-              </div>
-            )}
-            {toAmount &&
-              displayLiquidationPrice &&
-              `$${formatAmount(displayLiquidationPrice, USD_DECIMALS, toTokenPriceDecimal, true)}`}
-            {!toAmount && displayLiquidationPrice && `-`}
-            {!displayLiquidationPrice && `-`}
-          </ExchangeInfoRow>
-          <ExchangeInfoRow label={t`Collateral (${collateralToken.symbol})`} isTop>
-            <Tooltip
-              handle={`$${formatAmount(collateralAfterFees, USD_DECIMALS, 2, true)}`}
-              position="right-top"
-              renderContent={() => {
-                return (
-                  <>
-                    <Trans>Your position's collateral after deducting fees:</Trans>
-                    <br />
-                    <br />
-                    <StatsTooltipRow label={t`Pay Amount`} value={formatAmount(fromUsdMin, USD_DECIMALS, 2, true)} />
-                    <StatsTooltipRow label={t`Fees`} value={formatAmount(feesUsd, USD_DECIMALS, 2, true)} />
-                    <div className="Tooltip-divider" />
-                    <StatsTooltipRow
-                      label={t`Collateral`}
-                      value={formatAmount(collateralAfterFees, USD_DECIMALS, 2, true)}
-                    />
-                  </>
-                );
-              }}
-            />
-          </ExchangeInfoRow>
-          <ExchangeInfoRow label={t`Fees`}>
-            <FeesTooltip
-              fundingRate={fundingRate}
-              executionFees={currentExecutionFees}
-              positionFee={positionFee}
-              swapFee={swapFees}
-            />
-          </ExchangeInfoRow>
-
-          {decreaseOrdersThatWillBeExecuted.length > 0 && (
-            <div className="PositionEditor-allow-higher-slippage">
-              <Checkbox isChecked={isTriggerWarningAccepted} setIsChecked={setIsTriggerWarningAccepted}>
-                <span className="muted font-sm">
-                  <Trans>I am aware of the trigger orders</Trans>
-                </span>
-              </Checkbox>
-            </div>
-          )}
+            </ExchangeInfo.Group>
+          </ExchangeInfo>
         </div>
       </>
     );
@@ -806,48 +823,59 @@ export default function ConfirmationBox(props) {
         {renderMain()}
         {renderFeeWarning()}
         {renderSwapSpreadWarning()}
-        {showSwapSpread && (
-          <ExchangeInfoRow label={t`Spread`} isWarning={spreadInfo.isHigh}>
-            {formatAmount(spreadInfo.value.mul(100), USD_DECIMALS, 2, true)}%
-          </ExchangeInfoRow>
-        )}
-        {orderOption === LIMIT && renderAvailableLiquidity()}
-        {isMarketOrder && renderAllowedSlippage(setAllowedSlippage, savedSlippageAmount, allowedSlippage)}
-        <ExchangeInfoRow label={t`Mark Price`} isTop>
-          {getExchangeRateDisplay(getExchangeRate(fromTokenInfo, toTokenInfo), fromTokenInfo, toTokenInfo)}
-        </ExchangeInfoRow>
-        {!isMarketOrder && (
-          <div className="Exchange-info-row">
-            <div className="Exchange-info-label">
-              <Trans>Limit Price</Trans>
-            </div>
-            <div className="align-right">{getExchangeRateDisplay(triggerRatio, fromTokenInfo, toTokenInfo)}</div>
-          </div>
-        )}
+        <ExchangeInfo>
+          <ExchangeInfo.Group>
+            {showSwapSpread && (
+              <ExchangeInfoRow label={t`Spread`} isWarning={spreadInfo.isHigh}>
+                {formatAmount(spreadInfo.value.mul(100), USD_DECIMALS, 2, true)}%
+              </ExchangeInfoRow>
+            )}
+            {orderOption === LIMIT && renderAvailableLiquidity()}
+            {isMarketOrder && renderAllowedSlippage(setAllowedSlippage, savedSlippageAmount, allowedSlippage)}
+          </ExchangeInfo.Group>
 
-        {fromTokenUsd && (
-          <div className="Exchange-info-row">
-            <div className="Exchange-info-label">
-              <Trans>{fromTokenInfo.symbol} Price</Trans>
-            </div>
-            <div className="align-right">{fromTokenUsd} USD</div>
-          </div>
-        )}
-        {toTokenUsd && (
-          <div className="Exchange-info-row">
-            <div className="Exchange-info-label">
-              <Trans>{toTokenInfo.symbol} Price</Trans>
-            </div>
-            <div className="align-right">{toTokenUsd} USD</div>
-          </div>
-        )}
-        <ExchangeInfoRow label={t`Fees`} isTop>
-          <FeesTooltip executionFees={!isMarketOrder && currentExecutionFees} swapFee={feesUsd} />
-        </ExchangeInfoRow>
+          <ExchangeInfo.Group>
+            <ExchangeInfoRow label={t`Mark Price`}>
+              {getExchangeRateDisplay(getExchangeRate(fromTokenInfo, toTokenInfo), fromTokenInfo, toTokenInfo)}
+            </ExchangeInfoRow>
+            {!isMarketOrder && (
+              <div className="Exchange-info-row">
+                <div className="Exchange-info-label">
+                  <Trans>Limit Price</Trans>
+                </div>
+                <div className="align-right">{getExchangeRateDisplay(triggerRatio, fromTokenInfo, toTokenInfo)}</div>
+              </div>
+            )}
+            {fromTokenUsd && (
+              <div className="Exchange-info-row">
+                <div className="Exchange-info-label">
+                  <Trans>{fromTokenInfo.symbol} Price</Trans>
+                </div>
+                <div className="align-right">{fromTokenUsd} USD</div>
+              </div>
+            )}
+            {toTokenUsd && (
+              <div className="Exchange-info-row">
+                <div className="Exchange-info-label">
+                  <Trans>{toTokenInfo.symbol} Price</Trans>
+                </div>
+                <div className="align-right">{toTokenUsd} USD</div>
+              </div>
+            )}
+          </ExchangeInfo.Group>
 
-        <ExchangeInfoRow label={t`Min. Receive`} isTop>
-          {formatAmount(minOut, toTokenInfo.decimals, 4, true)} {toTokenInfo.symbol}
-        </ExchangeInfoRow>
+          <ExchangeInfo.Group>
+            <ExchangeInfoRow label={t`Fees`}>
+              <FeesTooltip executionFees={!isMarketOrder && currentExecutionFees} swapFee={feesUsd} />
+            </ExchangeInfoRow>
+          </ExchangeInfo.Group>
+
+          <ExchangeInfo.Group>
+            <ExchangeInfoRow label={t`Min. Receive`}>
+              {formatAmount(minOut, toTokenInfo.decimals, 4, true)} {toTokenInfo.symbol}
+            </ExchangeInfoRow>
+          </ExchangeInfo.Group>
+        </ExchangeInfo>
       </div>
     );
   }, [
